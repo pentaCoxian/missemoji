@@ -19,6 +19,8 @@ function flat(s: FrameState): number[] {
     s.paint.glowIntensity,
     s.paint.strokeWidthMul,
     s.paint.gradientOffset,
+    ((s.paint.hueShift % 360) + 360) % 360,
+    s.paint.minSaturation,
   ]
 }
 

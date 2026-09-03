@@ -27,6 +27,10 @@ export interface PaintModulators {
   strokeWidthMul: number
   /** added to gradient offset (0..1 wrap) */
   gradientOffset: number
+  /** hue rotation of the fill colour(s), degrees */
+  hueShift: number
+  /** saturation floor (0..1) applied with hueShift so pale fills still cycle */
+  minSaturation: number
 }
 
 /**
@@ -76,6 +80,8 @@ export const IDENTITY_PAINT: PaintModulators = {
   glowIntensity: 1,
   strokeWidthMul: 1,
   gradientOffset: 0,
+  hueShift: 0,
+  minSaturation: 0,
 }
 
 export const IDENTITY_FRAME: FrameState = {

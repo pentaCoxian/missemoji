@@ -223,6 +223,20 @@ describe('animation transforms reach the pixels', () => {
     expect(Math.abs(c1.x - c0.x)).toBeGreaterThan(4)
   })
 
+  it('rainbow rotates a red fill to green a third of the way through', () => {
+    const out = renderPreset(baseProject('A'), 'rainbow', 1 / 3)
+    let dominantGreen = 0
+    let opaque = 0
+    for (let i = 0; i < out.rgba.length; i += 4) {
+      if (out.rgba[i + 3]! < 250) continue
+      opaque++
+      if (out.rgba[i + 1]! > out.rgba[i]! + 100 && out.rgba[i + 1]! > out.rgba[i + 2]! + 100)
+        dominantGreen++
+    }
+    expect(opaque).toBeGreaterThan(0)
+    expect(dominantGreen / opaque).toBeGreaterThan(0.9)
+  })
+
   it('opacity composites the whole layer once (max alpha ≈ opacity)', () => {
     const project = baseProject('A')
     project.style.strokes = [{ width: 6, color: '#ffffff' }]

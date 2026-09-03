@@ -252,6 +252,19 @@ export const PRESETS: AnimationPreset[] = [
       return frame({ translate: { x, y }, rotate: rot })
     },
   },
+  {
+    id: 'rainbow',
+    label: 'Rainbow',
+    params: [
+      { key: 'cycles', label: 'Cycles', min: 1, max: 3, step: 1, default: 1, integer: true },
+      { key: 'vivid', label: 'Vividness', min: 0, max: 1, step: 0.05, default: 0.7 },
+    ],
+    sample: (t, params) => {
+      const cycles = Math.max(1, Math.round(p(params, 'cycles', 1)))
+      // whole hue turns per loop: hueShift(1) ≡ hueShift(0) mod 360
+      return frame({}, { hueShift: 360 * cycles * t, minSaturation: p(params, 'vivid', 0.7) })
+    },
+  },
 ]
 
 const PRESET_MAP = new Map(PRESETS.map((pr) => [pr.id, pr]))
