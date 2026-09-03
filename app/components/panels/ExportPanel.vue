@@ -4,9 +4,9 @@ import { useProjectStore } from '~/stores/project'
 import { useExportStore } from '~/stores/export'
 import { useEditorStore } from '~/stores/editor'
 import { useExport } from '~/composables/useExport'
-import { useApngBackend } from '~/composables/useApngBackend'
 import PanelSection from '~/components/controls/PanelSection.vue'
 import SegmentedControl from '~/components/controls/SegmentedControl.vue'
+import ChoiceButton from '~/components/controls/ChoiceButton.vue'
 import WarningList from '~/components/warnings/WarningList.vue'
 import ExportPresetSelect from '~/components/presets/ExportPresetSelect.vue'
 import type { ExportFormat, OptimizeFor } from '#core/project/schema'
@@ -17,12 +17,6 @@ const editor = useEditorStore()
 const { project } = storeToRefs(store)
 const { apngEngine } = storeToRefs(editor)
 const { start, cancel } = useExport()
-const { setEngine } = useApngBackend()
-
-async function chooseEngine(e: 'upng' | 'wasm') {
-  const ok = await setEngine(e)
-  editor.setApngEngine(ok ? e : 'upng')
-}
 
 const formats: { value: ExportFormat; label: string }[] = [
   { value: 'png', label: 'PNG' },
@@ -60,20 +54,15 @@ const sizes = [
       <div>
         <div class="mb-1 text-xs text-app-muted">Size</div>
         <div class="flex gap-1">
-          <button
+          <ChoiceButton
             v-for="s in sizes"
             :key="s.label"
-            type="button"
-            class="flex-1 rounded-app border px-2 py-1 text-xs transition-colors"
-            :class="
-              project.export.finalWidth === s.w
-                ? 'border-app-accent bg-app-panel-2'
-                : 'border-app-border hover:border-app-accent'
-            "
+            class="flex-1 px-2 py-1 text-xs"
+            :active="project.export.finalWidth === s.w"
             @click="store.setFinalSize(s.w, s.h)"
           >
             {{ s.label }}×{{ s.label }}
-          </button>
+          </ChoiceButton>
         </div>
       </div>
       <SegmentedControl
@@ -87,7 +76,7 @@ const sizes = [
         :model-value="apngEngine"
         :options="engines"
         label="APNG engine"
-        @update:model-value="chooseEngine($event)"
+        @update:model-value="editor.setApngEngine($event)"
       />
     </PanelSection>
 

@@ -8,20 +8,9 @@ import { useEditorStore } from '~/stores/editor'
  * plus full 128/256). Uses the data URL published by the preview pipeline.
  */
 const editor = useEditorStore()
-const { previewDataUrl, backgroundMode } = storeToRefs(editor)
+const { previewDataUrl, backgroundClass } = storeToRefs(editor)
 
 const sizes = [24, 48, 72, 128]
-
-const bgClass = (mode: string) => {
-  switch (mode) {
-    case 'dark':
-      return 'bg-[#15171c]'
-    case 'light':
-      return 'bg-[#f4f5f7]'
-    default:
-      return 'checkerboard'
-  }
-}
 </script>
 
 <template>
@@ -29,7 +18,7 @@ const bgClass = (mode: string) => {
     <div v-for="s in sizes" :key="s" class="flex flex-col items-center gap-1">
       <div
         class="flex items-center justify-center rounded"
-        :class="bgClass(backgroundMode)"
+        :class="backgroundClass"
         :style="{ width: s + 'px', height: s + 'px' }"
       >
         <img

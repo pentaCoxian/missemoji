@@ -1,6 +1,6 @@
 import type { FrameState, LayerTransform, PaintModulators } from './model'
 import { IDENTITY_TRANSFORM, IDENTITY_PAINT } from './model'
-import { smoothLoopEnvelope, smoothLoopOsc, cycleCosine, breathe } from './easing'
+import { smoothLoopEnvelope, smoothLoopOsc, breathe } from './easing'
 
 /**
  * Animation preset registry (spec §11).
@@ -151,7 +151,6 @@ export const PRESETS: AnimationPreset[] = [
       const g = min + (max - min) * breathe(t)
       // tiny synchronized scale so the glow feels alive without clipping
       const s = 1 + 0.02 * breathe(t)
-      void cycleCosine // (kept available for alt curves)
       return frame({ scale: { x: s, y: s } }, { glowIntensity: g })
     },
   },

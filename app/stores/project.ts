@@ -1,11 +1,9 @@
 import { defineStore } from 'pinia'
 import { createDefaultProject } from '#core/project/defaults'
-import { computeSafeMargins } from '#core/layout/safebox'
 import { getFontDescriptor } from '#core/fonts/catalog'
 import type {
   Align,
   BackgroundSpec,
-  DecorationSpec,
   EmojiProject,
   ExportFormat,
   FillSpec,
@@ -29,15 +27,6 @@ export const useProjectStore = defineStore('project', {
 
   getters: {
     isAnimated: (s): boolean => s.project.animation.enabled,
-    finalSize: (s) => ({
-      width: s.project.export.finalWidth,
-      height: s.project.export.finalHeight,
-    }),
-    renderSize: (s) => ({
-      width: s.project.export.finalWidth * s.project.export.renderScale,
-      height: s.project.export.finalHeight * s.project.export.renderScale,
-    }),
-    safeMargins: (s) => computeSafeMargins(s.project),
   },
 
   actions: {
@@ -72,12 +61,6 @@ export const useProjectStore = defineStore('project', {
     setLineHeight(v: number) {
       this.project.font.lineHeight = v
     },
-    setVariableAxis(axis: string, value: number) {
-      this.project.font.variableAxes = {
-        ...(this.project.font.variableAxes ?? {}),
-        [axis]: value,
-      }
-    },
 
     // --- layout ---
     setLayoutMode(mode: LayoutMode) {
@@ -91,9 +74,6 @@ export const useProjectStore = defineStore('project', {
     },
     setPadding(v: number) {
       this.project.layout.padding = v
-    },
-    setAutoLineBreak(v: boolean) {
-      this.project.layout.autoLineBreak = v
     },
     setManualLineBreaks(v: boolean) {
       this.project.layout.manualLineBreaks = v
@@ -140,12 +120,9 @@ export const useProjectStore = defineStore('project', {
       this.project.style.glows.splice(i, 1)
     },
 
-    // --- style: background / decorations ---
+    // --- style: background ---
     setBackground(bg: BackgroundSpec | null) {
       this.project.style.background = bg
-    },
-    setDecorations(decorations: DecorationSpec[]) {
-      this.project.style.decorations = decorations
     },
 
     // --- animation ---

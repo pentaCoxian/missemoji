@@ -9,7 +9,7 @@ export type LayoutMode = 'fit' | 'fill' | 'safe' | 'compact' | 'jp-balanced' | '
 export type Align = 'center' | 'left' | 'right'
 export type VerticalAlign = 'middle' | 'top' | 'bottom'
 
-export type ExportFormat = 'png' | 'apng' | 'gif' | 'webp' | 'zip'
+export type ExportFormat = 'png' | 'apng' | 'gif'
 export type OptimizeFor = 'quality' | 'size' | 'balanced'
 
 /** A color stop for gradient fills. position in [0, 1]. */
@@ -70,7 +70,6 @@ export interface LayoutSpec {
   align: Align
   verticalAlign: VerticalAlign
   padding: number
-  autoLineBreak: boolean
   manualLineBreaks: boolean
 }
 

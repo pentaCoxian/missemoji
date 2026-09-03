@@ -22,7 +22,6 @@ export const useExportStore = defineStore('export', {
   state: () => ({
     status: 'idle' as ExportStatus,
     progress: 0,
-    estimatedBytes: 0,
     lastResult: null as ExportResult | null,
     warnings: [] as ExportWarning[],
   }),
@@ -50,9 +49,6 @@ export const useExportStore = defineStore('export', {
     },
     setWarnings(warnings: ExportWarning[]) {
       this.warnings = warnings
-    },
-    setEstimatedBytes(bytes: number) {
-      this.estimatedBytes = bytes
     },
     fail() {
       this.status = 'error'

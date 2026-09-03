@@ -39,10 +39,3 @@ export interface ApngBackend {
     opts: { width: number; height: number; loop: boolean; quantizeColors?: number },
   ): Promise<Uint8Array>
 }
-
-export class NotImplementedError extends Error {
-  constructor(format: string) {
-    super(`Encoder for "${format}" is not implemented yet`)
-    this.name = 'NotImplementedError'
-  }
-}
