@@ -50,7 +50,7 @@ export function renderProjectFrame(project: EmojiProject, opts: RenderOptions): 
   const target = needsComposite ? createSurface(renderW, renderH) : surface
 
   // --- background: static under motion, fades with the layer ---
-  paintBackground(target.ctx, project.style.background, renderW, renderH)
+  paintBackground(target.ctx, project.style.background, renderW, renderH, scale)
 
   // --- emoji layer under the whole-frame transform ---
   target.ctx.save()

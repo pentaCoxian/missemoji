@@ -43,6 +43,8 @@ export const useProjectStore = defineStore('project', {
       // Snap the current weight to one this family actually offers, so the
       // render weight matches the loaded face (no faux-bold / fallback).
       const desc = getFontDescriptor(family)
+      // Only families with real italic faces keep an italic style.
+      if (desc && !desc.italic) this.project.font.style = 'normal'
       if (desc && !desc.weights.includes(this.project.font.weight)) {
         const want = this.project.font.weight
         this.project.font.weight = desc.weights.reduce(
