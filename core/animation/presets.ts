@@ -15,8 +15,8 @@ import { smoothLoopEnvelope, smoothLoopOsc, breathe } from './easing'
  * Length-like params (amount, height) are FRACTIONS of the final emoji size;
  * the renderer multiplies by the canvas dimensions.
  *
- * `overshoot` (fraction of emoji size) tells the safe-box solver how much extra
- * room to reserve so motion never clips.
+ * The safe-box reserve for motion is not declared here: core/animation/
+ * overshoot.ts measures each preset's actual reach with the user's params.
  */
 
 /** A user-tunable preset parameter, with the UI metadata to edit it. */
@@ -36,8 +36,9 @@ export interface ParamDef {
 export interface AnimationPreset {
   id: string
   label: string
-  overshoot: number
   params: ParamDef[]
+  /** true when the preset deliberately runs content off the canvas edge (no reserve) */
+  clipsToFrame?: boolean
   sample: (progress: number, params: Record<string, number>) => FrameState
 }
 
@@ -80,7 +81,6 @@ export const PRESETS: AnimationPreset[] = [
   {
     id: 'pulse',
     label: 'Pulse',
-    overshoot: 0.08,
     // gentler, slower breathing
     params: [amount(0.06, 0.01, 0.3)],
     sample: (t, params) => {
@@ -93,7 +93,6 @@ export const PRESETS: AnimationPreset[] = [
   {
     id: 'bounce',
     label: 'Bounce',
-    overshoot: 0.16,
     params: [{ key: 'height', label: 'Height', min: 0.02, max: 0.35, step: 0.01, default: 0.12 }],
     sample: (t, params) => {
       const h = p(params, 'height', 0.12)
@@ -109,7 +108,6 @@ export const PRESETS: AnimationPreset[] = [
   {
     id: 'pop',
     label: 'Pop',
-    overshoot: 0.16,
     params: [amount(0.12, 0.02, 0.4)],
     sample: (t, params) => {
       const a = p(params, 'amount', 0.12)
@@ -121,7 +119,6 @@ export const PRESETS: AnimationPreset[] = [
   {
     id: 'wiggle',
     label: 'Wiggle',
-    overshoot: 0.1,
     params: [
       {
         key: 'degrees',
@@ -144,7 +141,6 @@ export const PRESETS: AnimationPreset[] = [
   {
     id: 'shake',
     label: 'Shake',
-    overshoot: 0.12,
     params: [
       amount(0.05, 0.01, 0.15),
       { key: 'freq', label: 'Speed', min: 1, max: 8, step: 1, default: 3, integer: true },
@@ -160,7 +156,6 @@ export const PRESETS: AnimationPreset[] = [
   {
     id: 'float',
     label: 'Float',
-    overshoot: 0.1,
     params: [amount(0.06, 0.01, 0.15)],
     sample: (t, params) => {
       const a = p(params, 'amount', 0.06)
@@ -173,7 +168,6 @@ export const PRESETS: AnimationPreset[] = [
   {
     id: 'wave',
     label: 'Wave',
-    overshoot: 0.12,
     params: [amount(0.1, 0.02, 0.25)],
     sample: (t, params) => {
       const a = p(params, 'amount', 0.1)
@@ -189,7 +183,6 @@ export const PRESETS: AnimationPreset[] = [
   {
     id: 'glow-pulse',
     label: 'Glow Pulse',
-    overshoot: 0.04,
     params: [
       { key: 'min', label: 'Min glow', min: 0, max: 2, step: 0.05, default: 0.5 },
       { key: 'max', label: 'Max glow', min: 0, max: 2, step: 0.05, default: 1.3 },
@@ -210,9 +203,4 @@ const PRESET_MAP = new Map(PRESETS.map((pr) => [pr.id, pr]))
 
 export function getPreset(id: string): AnimationPreset | undefined {
   return PRESET_MAP.get(id)
-}
-
-/** Overshoot fraction for a preset id (0 if unknown / static). */
-export function presetOvershoot(id: string): number {
-  return PRESET_MAP.get(id)?.overshoot ?? 0
 }

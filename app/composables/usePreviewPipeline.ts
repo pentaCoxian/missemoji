@@ -8,7 +8,7 @@ import { renderProjectFrame } from '#core/render/renderProject'
 import { createSurface } from '#core/render/renderContext'
 import { sampleFrameState } from '#core/animation/sampleAnimation'
 import { buildFramePlan } from '#core/animation/frames'
-import { presetOvershoot } from '#core/animation/presets'
+import { computeOvershoot } from '#core/animation/overshoot'
 import { buildWarnings } from '#core/export/sizeEstimate'
 import { findMissingGlyphs } from '#core/fonts/glyphCheck'
 import { segmentGraphemes } from '#core/text/segmentGraphemes'
@@ -46,11 +46,8 @@ export function usePreviewPipeline(canvasRef: Ref<HTMLCanvasElement | null>) {
   function solve() {
     editor.setPreviewStatus('laying-out')
     const p = project.value
-    // Reserve safe-box room for animation overshoot so motion never clips.
-    const overshootPx = p.animation.enabled
-      ? presetOvershoot(p.animation.preset) * Math.max(p.export.finalWidth, p.export.finalHeight)
-      : 0
-    layout.value = solveLayout(measureSurface.ctx, p, overshootPx)
+    // Reserve safe-box room for the animation's measured reach so motion never clips.
+    layout.value = solveLayout(measureSurface.ctx, p, computeOvershoot(p))
     // keep frame count in sync for playback
     const plan = buildFramePlan(p.animation)
     editor.setFrameCount(plan.length)

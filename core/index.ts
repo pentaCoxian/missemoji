@@ -14,7 +14,8 @@ export { renderProjectFrame, type RenderOptions } from './render/renderProject'
 export { createSurface, type RenderSurface } from './render/renderContext'
 export { clearMeasureCache } from './layout/measureText'
 export type { FrameState } from './animation/model'
-export { PRESETS, getPreset, presetOvershoot, type AnimationPreset } from './animation/presets'
+export { PRESETS, getPreset, presetDefaults, type AnimationPreset } from './animation/presets'
+export { computeOvershoot } from './animation/overshoot'
 export { buildFramePlan } from './animation/frames'
 export {
   FONT_CATALOG,

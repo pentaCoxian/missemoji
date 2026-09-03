@@ -57,12 +57,12 @@ describe('classifyChange', () => {
     })
   })
 
-  it('animation preset change re-samples frames + encode only', () => {
+  it('animation preset change re-samples frames + encode and re-solves layout (motion reserve)', () => {
     const a = clone()
     const b = clone()
     b.animation.preset = 'bounce'
     const f = classifyChange(a, b)
-    expect(f).toEqual({ layout: false, render: false, frames: true, encode: true })
+    expect(f).toEqual({ layout: true, render: false, frames: true, encode: true })
   })
 
   it('render scale change re-renders but not re-layout', () => {

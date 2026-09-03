@@ -6,8 +6,11 @@ import { solveLayout } from '../layout/solve'
 import { getAlphaBounds } from '../layout/pixelBounds'
 import { createDefaultProject } from '../project/defaults'
 import { sampleFrameState } from '../animation/sampleAnimation'
+import { computeOvershoot } from '../animation/overshoot'
 import { IDENTITY_PAINT, IDENTITY_TRANSFORM, type FrameState } from '../animation/model'
 import type { EmojiProject } from '../project/schema'
+import { PRESETS } from '../animation/presets'
+import { buildFramePlan } from '../animation/frames'
 
 /**
  * Headless render verification using @napi-rs/canvas. This exercises the FULL
@@ -120,6 +123,35 @@ describe('renderProjectFrame (headless)', () => {
     const long = renderText('ABCDEFGHIJKLMNOP').layout.fontSize
     expect(short).toBeGreaterThan(long)
   })
+})
+
+describe('motion reserve prevents clipping', () => {
+  for (const preset of PRESETS) {
+    if (preset.clipsToFrame) continue
+    it(`${preset.id}: no frame touches the canvas edge at default params`, () => {
+      const project = baseProject('ABC!')
+      project.style.strokes = [{ width: 6, color: '#ffffff' }]
+      project.animation.enabled = true
+      project.animation.preset = preset.id
+      project.animation.fps = 12
+      project.animation.durationMs = 1000
+      const measure = createSurface(64, 64)
+      const layout = solveLayout(measure.ctx, project, computeOvershoot(project))
+      for (const step of buildFramePlan(project.animation)) {
+        const frame = sampleFrameState(project.animation, step.progress)
+        const out = renderProjectFrame(project, { layout, frame })
+        const { width: w, height: h, rgba } = out
+        let edgeAlpha = 0
+        for (let x = 0; x < w; x++) {
+          edgeAlpha = Math.max(edgeAlpha, rgba[x * 4 + 3]!, rgba[((h - 1) * w + x) * 4 + 3]!)
+        }
+        for (let y = 0; y < h; y++) {
+          edgeAlpha = Math.max(edgeAlpha, rgba[y * w * 4 + 3]!, rgba[(y * w + w - 1) * 4 + 3]!)
+        }
+        expect(edgeAlpha, `${preset.id} frame ${step.frameIndex}`).toBe(0)
+      }
+    })
+  }
 })
 
 describe('animation transforms reach the pixels', () => {

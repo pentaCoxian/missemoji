@@ -8,7 +8,7 @@ import type { EmojiProject } from '../project/schema'
 export interface SafeMargins {
   /** padding from layout */
   padding: number
-  /** widest stroke (outline can extend ~half its width past the path) */
+  /** widest stroke: the visible outline extends a full `width` past the glyph path */
   stroke: number
   /** shadow reach = max(blur + |offset|) */
   shadow: number
@@ -16,7 +16,7 @@ export interface SafeMargins {
   glow: number
   /** extra room for animation motion beyond the base box, in px */
   overshoot: number
-  /** total single-side margin = padding + max(stroke/2, shadow, glow) + overshoot */
+  /** total single-side margin = padding + max(stroke, shadow, glow) + overshoot */
   total: number
 }
 
@@ -37,7 +37,9 @@ export function computeSafeMargins(project: EmojiProject, overshootPx = 0): Safe
 
   const glow = project.style.glows.reduce((m, g) => Math.max(m, g.radius), 0)
 
-  const total = padding + Math.max(stroke / 2, shadow, glow) + overshootPx
+  // paintStrokes draws lineWidth = 2 × width (half hidden under the fill), so
+  // the outline reaches `width` px outside the glyph outline.
+  const total = padding + Math.max(stroke, shadow, glow) + overshootPx
 
   return { padding, stroke, shadow, glow, overshoot: overshootPx, total }
 }

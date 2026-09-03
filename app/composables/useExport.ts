@@ -7,7 +7,7 @@ import { solveLayout } from '#core/layout/solve'
 import { createSurface } from '#core/render/renderContext'
 import { buildFramePlan } from '#core/animation/frames'
 import { buildWarnings } from '#core/export/sizeEstimate'
-import { presetOvershoot } from '#core/animation/presets'
+import { computeOvershoot } from '#core/animation/overshoot'
 import type { ExportFormat } from '#core/project/schema'
 
 /**
@@ -30,12 +30,8 @@ export function useExport() {
 
     try {
       const p = JSON.parse(JSON.stringify(project.value)) // structured-clone-safe copy
-      const overshootPx = p.animation.enabled
-        ? presetOvershoot(p.animation.preset) * Math.max(p.export.finalWidth, p.export.finalHeight)
-        : 0
-
       const measure = createSurface(64, 64)
-      const layout = solveLayout(measure.ctx, p, overshootPx)
+      const layout = solveLayout(measure.ctx, p, computeOvershoot(p))
 
       const result = await workers.exportViaWorkers(
         p,
