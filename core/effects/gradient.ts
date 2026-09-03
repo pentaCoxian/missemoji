@@ -1,5 +1,6 @@
 import type { Ctx2D } from '../render/renderContext'
 import type { FillSpec, GradientStop } from '../project/schema'
+import { parseColor, mixColor } from './color'
 
 /**
  * Build a CanvasGradient for a linear-gradient fill.
@@ -69,45 +70,6 @@ export function featherStops(stops: GradientStop[], steps: number): GradientStop
   return out
 }
 
-interface RGBA {
-  r: number
-  g: number
-  b: number
-  a: number
-}
-
 function clamp01(v: number) {
   return Math.max(0, Math.min(1, v))
-}
-
-/** Parse #rgb, #rrggbb, #rrggbbaa. Returns null for unrecognized formats. */
-function parseColor(color: string): RGBA | null {
-  const hex = color.trim()
-  const m3 = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/i.exec(hex)
-  if (m3) {
-    return {
-      r: parseInt(m3[1]! + m3[1]!, 16),
-      g: parseInt(m3[2]! + m3[2]!, 16),
-      b: parseInt(m3[3]! + m3[3]!, 16),
-      a: 1,
-    }
-  }
-  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})?$/i.exec(hex)
-  if (m) {
-    return {
-      r: parseInt(m[1]!, 16),
-      g: parseInt(m[2]!, 16),
-      b: parseInt(m[3]!, 16),
-      a: m[4] ? parseInt(m[4]!, 16) / 255 : 1,
-    }
-  }
-  return null
-}
-
-function mixColor(a: RGBA, b: RGBA, t: number): string {
-  const r = Math.round(a.r + (b.r - a.r) * t)
-  const g = Math.round(a.g + (b.g - a.g) * t)
-  const bl = Math.round(a.b + (b.b - a.b) * t)
-  const al = a.a + (b.a - a.a) * t
-  return `rgba(${r},${g},${bl},${al.toFixed(3)})`
 }

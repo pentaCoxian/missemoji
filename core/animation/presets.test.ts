@@ -74,6 +74,10 @@ describe('presets loop seamlessly', () => {
         expect(fa[i]).toBeCloseTo(fb[i]!, 5)
       }
       expect(a.paint.glowIntensity).toBeCloseTo(b.paint.glowIntensity, 5)
+      expect(a.paint.strokeWidthMul).toBeCloseTo(b.paint.strokeWidthMul, 5)
+      expect(a.paint.gradientOffset).toBeCloseTo(b.paint.gradientOffset, 5)
+      const hue = (deg: number) => ((deg % 360) + 360) % 360
+      expect(hue(a.paint.hueShift)).toBeCloseTo(hue(b.paint.hueShift), 5)
     })
 
     it(`${preset.id}: per-char wave loops if present`, () => {

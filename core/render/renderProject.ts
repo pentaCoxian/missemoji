@@ -105,7 +105,7 @@ function paintEmojiLayer(
   }))
   withBlockStretch(ctx, placement, fullBox, () => {
     paintStrokes(ctx, project.font, placement, strokes, scale)
-    paintFill(ctx, project.font, placement, project.style.fill, frame.paint.gradientOffset)
+    paintFill(ctx, project.font, placement, project.style.fill, frame.paint)
   })
 }
 
