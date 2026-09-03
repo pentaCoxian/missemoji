@@ -18,27 +18,27 @@
     "@pinia/nuxt": "^0.11.0",
     "@vueuse/core": "^13.0.0",
     "@vueuse/nuxt": "^13.0.0",
+    "fflate": "^0.8.3",
     "gifenc": "^1.0.3",
     "grapheme-splitter": "^1.0.4",
-    "nuxt": "^4.4.5",
+    "nuxt": "~4.4.8",
     "pinia": "^3.0.0",
     "upng-js": "^2.1.0",
-    "vue": "latest",
-    "vue-router": "latest"
+    "vue": "^3.5.35",
+    "vue-router": "^5.1.0"
   },
   "devDependencies": {
     "@napi-rs/canvas": "^1.0.0",
     "@tailwindcss/postcss": "^4.3.0",
-    "@types/node": "^22.20.1",
-    "@vue/test-utils": "^2.4.6",
+    "@types/node": "^22.0.0",
     "autoprefixer": "^10.4.20",
-    "happy-dom": "^15.0.0",
+    "happy-dom": "^20.0.0",
     "postcss": "^8.4.45",
     "tailwindcss": "^4.3.0",
-    "typescript": "^5.6.0",
+    "typescript": "^5.9.3",
     "vite-plugin-top-level-await": "^1.4.4",
     "vite-plugin-wasm": "^3.3.0",
-    "vitest": "^2.1.0",
+    "vitest": "^3.2.7",
     "vue-tsc": "^2.1.0"
   }
 }
