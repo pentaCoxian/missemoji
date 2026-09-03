@@ -11,6 +11,8 @@ import { solveLayout } from '#core/layout/solve'
 import { createSurface } from '#core/render/renderContext'
 import { computeOvershoot } from '#core/animation/overshoot'
 import { buildWarnings } from '#core/export/sizeEstimate'
+import { suggestFilename } from '#core/export/filename'
+import { triggerDownload } from '~/utils/download'
 import type { ExportFormat } from '#core/project/schema'
 import type { TransferableFrame } from '#workers/protocol'
 
@@ -105,24 +107,4 @@ export function useExport() {
   }
 
   return { start, cancel }
-}
-
-function triggerDownload(url: string, filename: string) {
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-}
-
-/** Misskey emoji names use underscores, not dashes. */
-function suggestFilename(text: string, format: ExportFormat): string {
-  const base =
-    text
-      .replace(/\s+/g, '_')
-      .replace(/[^\w぀-ヿ一-龯]+/g, '')
-      .slice(0, 24) || 'emoji'
-  const ext = format === 'apng' ? 'png' : format
-  return `${base}.${ext}`
 }
