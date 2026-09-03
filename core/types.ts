@@ -29,9 +29,13 @@ export interface RGBA {
   a: number
 }
 
-/** A single rendered animation frame, ready for an encoder. */
+/**
+ * A single rendered animation frame, ready for an encoder. `rgba` is backed by
+ * a plain (non-shared) ArrayBuffer so it can be handed to ImageData and
+ * transferred to workers without casts.
+ */
 export interface RenderFrame {
-  rgba: Uint8ClampedArray
+  rgba: Uint8ClampedArray<ArrayBuffer>
   width: number
   height: number
   delayMs: number
