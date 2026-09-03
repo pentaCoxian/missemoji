@@ -19,8 +19,7 @@ export const easeOutElastic = (t: number) => {
   return 2 ** (-10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1
 }
 
-export const easeInOutQuad = (t: number) =>
-  t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2
+export const easeInOutQuad = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2)
 
 /** A symmetric loop helper: maps progress 0..1 to 0..1..0 via a sine. */
 export const pingPongSine = (t: number) => Math.sin(t * Math.PI)

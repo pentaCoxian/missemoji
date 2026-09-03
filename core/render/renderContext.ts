@@ -4,9 +4,7 @@
  */
 
 export type AnyCanvas = HTMLCanvasElement | OffscreenCanvas
-export type Ctx2D =
-  | CanvasRenderingContext2D
-  | OffscreenCanvasRenderingContext2D
+export type Ctx2D = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
 
 export interface RenderSurface {
   canvas: AnyCanvas

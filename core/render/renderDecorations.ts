@@ -32,14 +32,7 @@ export function paintBackground(
   ctx.fill()
 }
 
-function roundRect(
-  ctx: Ctx2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-) {
+function roundRect(ctx: Ctx2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath()
   ctx.moveTo(x + r, y)
   ctx.arcTo(x + w, y, x + w, y + h, r)

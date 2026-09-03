@@ -8,11 +8,7 @@ import type { FontSpec } from '../project/schema'
  * generic; identical zero/notdef widths across clusters suggest tofu. We use a
  * simpler, robust check: a glyph renders to *some* visible pixels.
  */
-export function findMissingGlyphs(
-  ctx: Ctx2D,
-  font: FontSpec,
-  clusters: string[],
-): string[] {
+export function findMissingGlyphs(ctx: Ctx2D, font: FontSpec, clusters: string[]): string[] {
   const missing: string[] = []
   const size = 48
   ctx.font = cssFont(font, size)

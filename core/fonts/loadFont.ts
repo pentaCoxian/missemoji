@@ -63,8 +63,7 @@ export async function loadGoogleFont(
     return []
   }
 
-  const weights =
-    opts.weights && opts.weights.length ? opts.weights : descriptor.weights
+  const weights = opts.weights && opts.weights.length ? opts.weights : descriptor.weights
   const key = cacheKey(descriptor, weights)
   if (done.has(key)) return weights
   const existing = inflight.get(key)
@@ -143,9 +142,7 @@ function parseFontFaces(css: string): ParsedFace[] {
   while ((m = blockRe.exec(css))) {
     const body = m[1]!
     const weight = Number(/font-weight:\s*(\d+)/.exec(body)?.[1] ?? '400')
-    const style = /font-style:\s*italic/.test(body)
-      ? ('italic' as const)
-      : ('normal' as const)
+    const style = /font-style:\s*italic/.test(body) ? ('italic' as const) : ('normal' as const)
     // Prefer a woff2 url; fall back to the first url().
     const src =
       /url\(([^)]+\.woff2[^)]*)\)/.exec(body)?.[1]?.replace(/['"]/g, '') ??

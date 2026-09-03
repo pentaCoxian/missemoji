@@ -1,10 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { PRESETS } from './presets'
-import {
-  smoothLoopEnvelope,
-  smoothLoopOsc,
-  breathe,
-} from './easing'
+import { smoothLoopEnvelope, smoothLoopOsc, breathe } from './easing'
 import type { LayerTransform } from './model'
 
 /**

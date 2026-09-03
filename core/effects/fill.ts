@@ -1,7 +1,6 @@
 import type { Ctx2D } from '../render/renderContext'
-import type { FillSpec } from '../project/schema'
+import type { FillSpec, FontSpec } from '../project/schema'
 import type { TextPlacement } from '../render/renderTextLayer'
-import type { FontSpec } from '../project/schema'
 import { paintPlacedText } from '../render/renderTextLayer'
 import { buildLinearGradient } from './gradient'
 

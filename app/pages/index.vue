@@ -18,9 +18,7 @@ const leftTab = ref<'content' | 'font'>('content')
 <template>
   <div class="flex h-screen flex-col bg-app-bg text-app-text">
     <!-- Top bar -->
-    <header
-      class="flex items-center justify-between border-b border-app-border px-4 py-2"
-    >
+    <header class="flex items-center justify-between border-b border-app-border px-4 py-2">
       <div class="flex items-center gap-2">
         <span class="text-lg">🎏</span>
         <h1 class="text-sm font-semibold">missemoji</h1>
@@ -30,9 +28,7 @@ const leftTab = ref<'content' | 'font'>('content')
 
     <div class="flex min-h-0 flex-1">
       <!-- Left: content / font -->
-      <aside
-        class="flex w-72 flex-col border-r border-app-border bg-app-panel"
-      >
+      <aside class="flex w-72 flex-col border-r border-app-border bg-app-panel">
         <div class="flex border-b border-app-border">
           <button
             type="button"
@@ -74,9 +70,7 @@ const leftTab = ref<'content' | 'font'>('content')
       </main>
 
       <!-- Right: style / animation / export -->
-      <aside
-        class="w-80 overflow-y-auto border-l border-app-border bg-app-panel"
-      >
+      <aside class="w-80 overflow-y-auto border-l border-app-border bg-app-panel">
         <StylePanel />
         <AnimationPanel />
         <ExportPanel />

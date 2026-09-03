@@ -1,8 +1,4 @@
-import {
-  createSurface,
-  supportsCanvasFilter,
-  type Ctx2D,
-} from '../render/renderContext'
+import { createSurface, supportsCanvasFilter, type Ctx2D } from '../render/renderContext'
 import type { FontSpec, ShadowSpec } from '../project/schema'
 import type { TextPlacement } from '../render/renderTextLayer'
 import { paintPlacedText, withBlockStretch } from '../render/renderTextLayer'

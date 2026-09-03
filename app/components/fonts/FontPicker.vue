@@ -80,9 +80,7 @@ function pick(family: string) {
             >
               <span class="truncate text-sm">{{ f.family }}</span>
               <span class="flex items-center gap-1">
-                <span
-                  v-if="fontsStore.isLoading(f.family)"
-                  class="text-[10px] text-app-muted"
+                <span v-if="fontsStore.isLoading(f.family)" class="text-[10px] text-app-muted"
                   >loading…</span
                 >
                 <button

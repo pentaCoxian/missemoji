@@ -26,10 +26,7 @@ export interface PaintModulators {
 }
 
 /** Per-character transform function for text-specific presets (e.g. wave). */
-export type PerCharFn = (
-  charIndex: number,
-  charCount: number,
-) => Partial<LayerTransform>
+export type PerCharFn = (charIndex: number, charCount: number) => Partial<LayerTransform>
 
 export interface FrameState {
   layer: LayerTransform

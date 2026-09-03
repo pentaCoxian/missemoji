@@ -35,14 +35,12 @@ export interface ExportViaWorkersResult {
 }
 
 export function useWorkerClient() {
-  const renderWorker = new Worker(
-    new URL('#workers/render.worker.ts', import.meta.url),
-    { type: 'module' },
-  )
-  const encodeWorker = new Worker(
-    new URL('#workers/encode.worker.ts', import.meta.url),
-    { type: 'module' },
-  )
+  const renderWorker = new Worker(new URL('#workers/render.worker.ts', import.meta.url), {
+    type: 'module',
+  })
+  const encodeWorker = new Worker(new URL('#workers/encode.worker.ts', import.meta.url), {
+    type: 'module',
+  })
 
   let activeJobId: string | null = null
 
@@ -86,9 +84,7 @@ export function useWorkerClient() {
         }
       }
       renderWorker.addEventListener('message', handler)
-      renderWorker.postMessage(
-        { type: 'render-frames', jobId, project, layout } as RenderRequest,
-      )
+      renderWorker.postMessage({ type: 'render-frames', jobId, project, layout } as RenderRequest)
     })
   }
 
@@ -124,10 +120,7 @@ export function useWorkerClient() {
       encodeWorker.addEventListener('message', handler)
       // Transfer all frame buffers to the encode worker (zero-copy).
       const transfer = frames.map((f) => f.rgba)
-      encodeWorker.postMessage(
-        { type: 'encode', jobId, frames, opts } as EncodeRequest,
-        transfer,
-      )
+      encodeWorker.postMessage({ type: 'encode', jobId, frames, opts } as EncodeRequest, transfer)
     })
   }
 

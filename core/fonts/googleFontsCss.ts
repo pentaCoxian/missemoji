@@ -10,10 +10,7 @@ export function buildCss2Url(
   opts: { weights?: number[]; text?: string } = {},
 ): string {
   const family = descriptor.family.replace(/ /g, '+')
-  const weights = (opts.weights && opts.weights.length
-    ? opts.weights
-    : descriptor.weights
-  )
+  const weights = (opts.weights && opts.weights.length ? opts.weights : descriptor.weights)
     .slice()
     .sort((a, b) => a - b)
 
