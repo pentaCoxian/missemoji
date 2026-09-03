@@ -22,6 +22,9 @@ export const useEditorStore = defineStore('editor', {
       currentFrame: 0,
       frameCount: 1,
     },
+    /** batch export: one emoji per line of batchText, styled like the project */
+    batchMode: false,
+    batchText: '',
   }),
 
   getters: {
@@ -40,6 +43,12 @@ export const useEditorStore = defineStore('editor', {
     },
     setCurrentFrame(i: number) {
       this.playback.currentFrame = i
+    },
+    setBatchMode(v: boolean) {
+      this.batchMode = v
+    },
+    setBatchText(text: string) {
+      this.batchText = text
     },
     setFrameCount(n: number) {
       this.playback.frameCount = n

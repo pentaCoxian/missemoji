@@ -27,6 +27,8 @@ export const useExportStore = defineStore('export', {
     progress: 0,
     lastResult: null as ExportResult | null,
     warnings: [] as ExportWarning[],
+    /** progress of a batch export (null outside batch runs) */
+    batch: null as null | { total: number; done: number },
   }),
 
   getters: {
@@ -37,6 +39,13 @@ export const useExportStore = defineStore('export', {
     begin() {
       this.status = 'queued'
       this.progress = 0
+      this.batch = null
+    },
+    beginBatch(total: number) {
+      this.batch = { total, done: 0 }
+    },
+    setBatchDone(done: number) {
+      if (this.batch) this.batch.done = done
     },
     setStatus(s: ExportStatus) {
       this.status = s

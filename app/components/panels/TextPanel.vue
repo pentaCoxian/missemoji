@@ -5,6 +5,7 @@ import PanelSection from '~/components/controls/PanelSection.vue'
 import SegmentedControl from '~/components/controls/SegmentedControl.vue'
 import ToggleSwitch from '~/components/controls/ToggleSwitch.vue'
 import AppSlider from '~/components/controls/AppSlider.vue'
+import BatchSection from '~/components/panels/BatchSection.vue'
 import type { Align, LayoutMode, VerticalAlign } from '#core/project/schema'
 
 const store = useProjectStore()
@@ -46,6 +47,8 @@ const vAligns: { value: VerticalAlign; label: string }[] = [
         @update:model-value="store.setManualLineBreaks($event)"
       />
     </PanelSection>
+
+    <BatchSection />
 
     <PanelSection title="Layout">
       <SegmentedControl

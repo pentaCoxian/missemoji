@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useProjectStore } from '~/stores/project'
 import { useExportStore } from '~/stores/export'
@@ -10,13 +11,15 @@ import ChoiceButton from '~/components/controls/ChoiceButton.vue'
 import WarningList from '~/components/warnings/WarningList.vue'
 import ExportPresetSelect from '~/components/presets/ExportPresetSelect.vue'
 import type { ExportFormat, OptimizeFor } from '#core/project/schema'
+import { parseBatchLines } from '#core/export/batch'
 
 const store = useProjectStore()
 const exportStore = useExportStore()
 const editor = useEditorStore()
 const { project } = storeToRefs(store)
 const { apngEngine } = storeToRefs(editor)
-const { start, cancel } = useExport()
+const { start, startBatch, cancel } = useExport()
+const batchCount = computed(() => parseBatchLines(editor.batchText).length)
 
 const formats: { value: ExportFormat; label: string }[] = [
   { value: 'png', label: 'PNG' },
@@ -82,12 +85,21 @@ const sizes = [
 
     <PanelSection title="Download">
       <button
-        v-if="!exportStore.isBusy"
+        v-if="!exportStore.isBusy && !editor.batchMode"
         type="button"
         class="w-full rounded-app bg-app-accent-strong px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
         @click="start()"
       >
         Download {{ project.export.format.toUpperCase() }}
+      </button>
+      <button
+        v-else-if="!exportStore.isBusy"
+        type="button"
+        class="w-full rounded-app bg-app-accent-strong px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+        :disabled="batchCount === 0"
+        @click="startBatch(editor.batchText)"
+      >
+        Download ZIP ({{ batchCount }} × {{ project.export.format.toUpperCase() }})
       </button>
       <div v-else class="space-y-2">
         <div class="h-2 w-full overflow-hidden rounded-full bg-app-panel-2">
@@ -101,7 +113,10 @@ const sizes = [
           class="w-full rounded-app border border-app-border px-3 py-2 text-xs text-app-muted hover:text-app-text"
           @click="cancel()"
         >
-          Cancel ({{ exportStore.status }})
+          Cancel ({{ exportStore.status
+          }}<template v-if="exportStore.batch">
+            · {{ exportStore.batch.done }}/{{ exportStore.batch.total }}</template
+          >)
         </button>
       </div>
 
