@@ -78,8 +78,11 @@ export function classifyChange(prev: EmojiProject, next: EmojiProject): Recomput
     prev.animation.phase !== next.animation.phase
   ) {
     flags = merge(flags, { frames: true, encode: true })
+    // (the preset's layout hints only apply while enabled, so toggling
+    // `enabled` re-solves too)
     if (
       changed(prev.animation.preset, next.animation.preset) ||
+      prev.animation.enabled !== next.animation.enabled ||
       computeOvershoot(prev) !== computeOvershoot(next)
     ) {
       flags = merge(flags, { layout: true })

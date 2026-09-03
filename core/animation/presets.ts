@@ -1,4 +1,4 @@
-import type { FrameState, LayerTransform, PaintModulators } from './model'
+import type { FrameState, LayerTransform, PaintModulators, TileSpec } from './model'
 import { IDENTITY_TRANSFORM, IDENTITY_PAINT } from './model'
 import { smoothLoopEnvelope, smoothLoopOsc, breathe } from './easing'
 
@@ -33,12 +33,23 @@ export interface ParamDef {
   integer?: boolean
 }
 
+/** Requests a preset can make of the layout solver. */
+export interface LayoutHints {
+  /** lay the whole text out on one line (manual breaks are joined) */
+  singleLine?: boolean
+  /** let the line run wider than the canvas (it will scroll / be clipped) */
+  allowOverflowX?: boolean
+  /** skip per-letter aspect packing */
+  noStretch?: boolean
+}
+
 export interface AnimationPreset {
   id: string
   label: string
   params: ParamDef[]
   /** true when the preset deliberately runs content off the canvas edge (no reserve) */
   clipsToFrame?: boolean
+  layoutHints?: LayoutHints
   sample: (progress: number, params: Record<string, number>) => FrameState
 }
 
@@ -53,6 +64,7 @@ function frame(
   layer: Partial<LayerTransform>,
   paint: Partial<PaintModulators> = {},
   perChar?: FrameState['perChar'],
+  tile?: TileSpec,
 ): FrameState {
   return {
     layer: {
@@ -63,6 +75,7 @@ function frame(
     },
     paint: { ...IDENTITY_PAINT, ...paint },
     perChar,
+    tile,
   }
 }
 
@@ -263,6 +276,26 @@ export const PRESETS: AnimationPreset[] = [
       const cycles = Math.max(1, Math.round(p(params, 'cycles', 1)))
       // whole hue turns per loop: hueShift(1) ≡ hueShift(0) mod 360
       return frame({}, { hueShift: 360 * cycles * t, minSaturation: p(params, 'vivid', 0.7) })
+    },
+  },
+  {
+    id: 'marquee',
+    label: 'Marquee',
+    clipsToFrame: true,
+    layoutHints: { singleLine: true, allowOverflowX: true, noStretch: true },
+    params: [
+      { key: 'gap', label: 'Gap', min: 0.1, max: 1, step: 0.05, default: 0.5 },
+      { key: 'cycles', label: 'Cycles', min: 1, max: 3, step: 1, default: 1, integer: true },
+    ],
+    sample: (t, params) => {
+      const cycles = Math.max(1, Math.round(p(params, 'cycles', 1)))
+      // the text scrolls right-to-left by whole periods per loop; the renderer
+      // tiles copies so the wrap is invisible
+      return frame({}, {}, undefined, {
+        axis: 'x',
+        phase: (cycles * t) % 1,
+        gap: p(params, 'gap', 0.5),
+      })
     },
   },
 ]

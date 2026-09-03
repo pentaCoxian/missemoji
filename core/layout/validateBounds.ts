@@ -18,6 +18,7 @@ export function validatePixelBounds(
   project: EmojiProject,
   layout: LayoutResult,
   safeMarginPx: number,
+  opts: { ignoreX?: boolean } = {},
 ): LayoutResult {
   if (layout.lines.length === 0) return layout
 
@@ -61,7 +62,7 @@ export function validatePixelBounds(
   const safeH = safe.maxY - safe.minY
 
   let shrink = 1
-  if ((overL > 0 || overR > 0) && contentW > 0) {
+  if (!opts.ignoreX && (overL > 0 || overR > 0) && contentW > 0) {
     shrink = Math.min(shrink, safeW / contentW)
   }
   if ((overT > 0 || overB > 0) && contentH > 0) {
