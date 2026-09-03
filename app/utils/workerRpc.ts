@@ -41,6 +41,8 @@ export interface WorkerRpc<Req, Res, Hello> {
   ): RpcCall
   terminate(): void
   crashCount(): number
+  /** how many times a worker has been created (bumps after a crash) */
+  spawnCount(): number
 }
 
 interface Pending<Res> {
@@ -59,6 +61,7 @@ export function createWorkerRpc<Req, Res, Hello>(
   let hello: Promise<Hello> | null = null
   let rejectHello: ((err: Error) => void) | null = null
   let crashes = 0
+  let spawns = 0
   const pending = new Map<string, Pending<Res>>()
 
   function finish(jobId: string, err?: Error) {
@@ -106,6 +109,7 @@ export function createWorkerRpc<Req, Res, Hello>(
     if (worker && hello) return hello
     const w = options.create()
     worker = w
+    spawns++
     hello = new Promise<Hello>((resolve, reject) => {
       const timer = setTimeout(() => {
         crash(new WorkerCrashedError('Worker did not start'))
@@ -163,6 +167,7 @@ export function createWorkerRpc<Req, Res, Hello>(
       crashes-- // a deliberate terminate is not a crash
     },
     crashCount: () => crashes,
+    spawnCount: () => spawns,
   }
 }
 

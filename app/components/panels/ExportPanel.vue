@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useProjectStore } from '~/stores/project'
 import { useExportStore } from '~/stores/export'
 import { useEditorStore } from '~/stores/editor'
+import { useFontsStore } from '~/stores/fonts'
 import { useExport } from '~/composables/useExport'
 import PanelSection from '~/components/controls/PanelSection.vue'
 import SegmentedControl from '~/components/controls/SegmentedControl.vue'
@@ -12,6 +13,8 @@ import WarningList from '~/components/warnings/WarningList.vue'
 import ExportPresetSelect from '~/components/presets/ExportPresetSelect.vue'
 import type { ExportFormat, OptimizeFor } from '#core/project/schema'
 import { parseBatchLines } from '#core/export/batch'
+import { getFontDescriptor } from '#core/fonts/catalog'
+import type { Warning } from '#core/export/sizeEstimate'
 
 const store = useProjectStore()
 const exportStore = useExportStore()
@@ -20,6 +23,30 @@ const { project } = storeToRefs(store)
 const { apngEngine } = storeToRefs(editor)
 const { start, startBatch, cancel } = useExport()
 const batchCount = computed(() => parseBatchLines(editor.batchText).length)
+
+const fontsStore = useFontsStore()
+const GENERIC_FAMILIES = new Set(['sans-serif', 'serif', 'monospace', 'system-ui', 'cursive'])
+/** Font problems that would make the export differ from what the user expects. */
+const fontWarnings = computed<Warning[]>(() => {
+  const family = project.value.font.family
+  const out: Warning[] = []
+  if (fontsStore.isFailed(family)) {
+    out.push({
+      level: 'warn',
+      message: `Font "${family}" failed to load — a fallback font is shown and exported.`,
+    })
+  } else if (
+    !getFontDescriptor(family) &&
+    !fontsStore.customFont(family) &&
+    !GENERIC_FAMILIES.has(family)
+  ) {
+    out.push({
+      level: 'warn',
+      message: `Custom font "${family}" is not loaded in this session — re-upload it.`,
+    })
+  }
+  return out
+})
 
 const formats: { value: ExportFormat; label: string }[] = [
   { value: 'png', label: 'PNG' },
@@ -145,7 +172,7 @@ const renderScales: { value: number; label: string }[] = [
         >
       </p>
 
-      <WarningList :warnings="exportStore.warnings" />
+      <WarningList :warnings="[...fontWarnings, ...exportStore.warnings]" />
     </PanelSection>
   </div>
 </template>

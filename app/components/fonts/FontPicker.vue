@@ -24,6 +24,17 @@ const grouped = computed(() => {
   // Favorites + recent pseudo-groups first when no query.
   const sections: { key: string; label: string; fonts: typeof FONT_CATALOG }[] = []
 
+  // Fonts uploaded this session (shown as catalog-like rows).
+  const custom = fontsStore.customFonts
+    .filter((f) => !q || f.family.toLowerCase().includes(q))
+    .map((f) => ({
+      family: f.family,
+      group: 'recommended' as const,
+      weights: [400],
+      japanese: false,
+    }))
+  if (custom.length) sections.push({ key: 'custom', label: 'Custom (uploaded)', fonts: custom })
+
   if (!q) {
     const favs = FONT_CATALOG.filter((f) => fontsStore.favorites.includes(f.family))
     if (favs.length) sections.push({ key: 'fav', label: 'Favorites', fonts: favs })
@@ -46,6 +57,11 @@ const grouped = computed(() => {
 
 function pick(family: string) {
   store.setFontFamily(family)
+}
+
+function removeCustom(family: string) {
+  fontsStore.removeCustomFont(family)
+  if (project.value.font.family === family) store.setFontFamily('Mochiy Pop One')
 }
 </script>
 
@@ -79,6 +95,21 @@ function pick(family: string) {
                 <span v-if="fontsStore.isLoading(f.family)" class="text-[10px] text-app-muted"
                   >loading…</span
                 >
+                <span
+                  v-else-if="fontsStore.isFailed(f.family)"
+                  class="text-[10px] text-app-danger"
+                  title="The font could not be downloaded; a fallback font is used"
+                  >failed</span
+                >
+                <button
+                  v-if="section.key === 'custom'"
+                  type="button"
+                  class="text-xs text-app-border hover:text-app-danger"
+                  :aria-label="'remove ' + f.family"
+                  @click.stop="removeCustom(f.family)"
+                >
+                  ✕
+                </button>
                 <button
                   type="button"
                   class="text-xs"
