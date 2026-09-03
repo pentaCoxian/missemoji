@@ -67,13 +67,24 @@ export default defineNuxtConfig({
 
   vite: {
     plugins: [wasm(), topLevelAwait()],
+    // CJS deps discovered late (first export spawns the encode path) would
+    // otherwise trigger a dev-server re-optimization + full page reload.
+    optimizeDeps: {
+      include: [
+        'grapheme-splitter',
+        'upng-js',
+        'gifenc',
+        '@vue/devtools-core',
+        '@vue/devtools-kit',
+      ],
+      esbuildOptions: { target: 'es2022' },
+    },
     // wasm ESM + top-level-await need a modern build target. esbuild.target
     // covers the transform/minify passes; build.target covers the final chunk
     // target (where the TLA-downlevel error otherwise fires). All 2026 target
     // browsers support TLA + bulk-memory wasm natively.
     build: { target: 'es2022' },
     esbuild: { target: 'es2022' },
-    optimizeDeps: { esbuildOptions: { target: 'es2022' } },
     // ES module workers so render/encode workers can `import` #core + wasm glue.
     worker: {
       format: 'es',
