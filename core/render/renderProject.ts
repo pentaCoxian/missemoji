@@ -1,6 +1,6 @@
 import type { EmojiProject } from '../project/schema'
 import type { LayoutResult } from '../layout/types'
-import type { RenderFrame, Bounds } from '../types'
+import type { RenderFrame } from '../types'
 import type { FrameState } from '../animation/model'
 import { IDENTITY_FRAME } from '../animation/model'
 import { createSurface, type RenderSurface } from './renderContext'
@@ -10,7 +10,6 @@ import { paintShadows } from '../effects/shadow'
 import { paintGlows } from '../effects/glow'
 import { paintStrokes } from '../effects/stroke'
 import { paintFill } from '../effects/fill'
-import { getAlphaBounds } from '../layout/pixelBounds'
 import { downscaleTo } from './downscale'
 
 export interface RenderOptions {
@@ -18,14 +17,12 @@ export interface RenderOptions {
   layout: LayoutResult
   /** Optional animation frame state (defaults to identity for static). */
   frame?: FrameState
-  /** Stable crop box across animation frames (render px) to avoid jitter. */
-  cropBounds?: Bounds | null
   delayMs?: number
 }
 
 /**
  * Render a project to a high-res surface, compose all layers in canonical order
- * (spec §9), then crop + downscale to the final size. Returns a RenderFrame.
+ * (spec §9), then downscale to the final size. Returns a RenderFrame.
  *
  * The same code path serves both static (no frame) and one animation frame.
  */
@@ -83,8 +80,8 @@ export function renderProjectFrame(project: EmojiProject, opts: RenderOptions): 
 
   ctx.restore()
 
-  // --- crop + downscale ---
-  return cropAndDownscale(surface, finalW, finalH, opts.cropBounds, opts.delayMs ?? 0)
+  // --- downscale ---
+  return downscaleFrame(surface, finalW, finalH, opts.delayMs ?? 0)
 }
 
 function applyLayerTransform(
@@ -103,24 +100,18 @@ function applyLayerTransform(
 }
 
 /**
- * Crop the rendered surface to visible content (or a provided stable crop box),
- * recenter into a square, then downscale to final size. Returns RGBA.
+ * Downscale the full render surface to the final size and read back RGBA. The
+ * layout solver already centred the content within the safe box, so no crop is
+ * needed (and a per-frame crop would make animation frames jitter).
  */
-function cropAndDownscale(
+function downscaleFrame(
   surface: RenderSurface,
   finalW: number,
   finalH: number,
-  cropBounds: Bounds | null | undefined,
   delayMs: number,
 ): RenderFrame {
   const renderW = surface.width
   const renderH = surface.height
-
-  // We downscale the full surface (already correctly placed/centered by layout)
-  // rather than tightly cropping — the layout solver already centered content
-  // within the safe box. cropBounds is reserved for animation stable-crop use.
-  void cropBounds
-
   const out = downscaleTo(surface.canvas, renderW, renderH, finalW, finalH)
   const img = out.ctx.getImageData(0, 0, finalW, finalH)
   return {
@@ -129,10 +120,4 @@ function cropAndDownscale(
     height: finalH,
     delayMs,
   }
-}
-
-/** Compute alpha bounds of a rendered surface (used by analyze-bounds). */
-export function computeRenderBounds(surface: RenderSurface, threshold = 0): Bounds {
-  const img = surface.ctx.getImageData(0, 0, surface.width, surface.height)
-  return getAlphaBounds(img.data, surface.width, surface.height, threshold)
 }

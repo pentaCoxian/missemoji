@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useProjectStore } from '~/stores/project'
 import { useFontsStore } from '~/stores/fonts'
+import ChoiceButton from '~/components/controls/ChoiceButton.vue'
 import {
   groupedCatalog,
   FONT_GROUP_LABELS,
@@ -68,14 +69,9 @@ function pick(family: string) {
         </div>
         <ul class="space-y-1">
           <li v-for="f in section.fonts" :key="section.key + f.family">
-            <button
-              type="button"
-              class="flex w-full items-center justify-between rounded-app border px-3 py-2 text-left transition-colors"
-              :class="
-                f.family === project.font.family
-                  ? 'border-app-accent bg-app-panel-2'
-                  : 'border-app-border hover:border-app-accent'
-              "
+            <ChoiceButton
+              class="flex w-full items-center justify-between px-3 py-2 text-left"
+              :active="f.family === project.font.family"
               @click="pick(f.family)"
             >
               <span class="truncate text-sm">{{ f.family }}</span>
@@ -97,7 +93,7 @@ function pick(family: string) {
                   ★
                 </button>
               </span>
-            </button>
+            </ChoiceButton>
           </li>
         </ul>
       </div>

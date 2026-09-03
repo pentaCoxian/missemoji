@@ -9,8 +9,6 @@ import BackgroundToggle from '~/components/preview/BackgroundToggle.vue'
 import PlaybackControls from '~/components/preview/PlaybackControls.vue'
 import SizePreviewStrip from '~/components/preview/SizePreviewStrip.vue'
 
-useHead({ title: 'missemoji — Misskey APNG emoji generator' })
-
 // Left panel tabs (Content vs Font); right panel is Style/Animation/Export.
 const leftTab = ref<'content' | 'font'>('content')
 </script>

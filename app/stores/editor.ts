@@ -3,15 +3,19 @@ import { defineStore } from 'pinia'
 export type BackgroundMode = 'checker' | 'dark' | 'light'
 export type PreviewStatus = 'idle' | 'laying-out' | 'rendering' | 'ready'
 
+/** Tailwind classes for each preview backdrop (shared by stage + size strip). */
+const BACKGROUND_CLASS: Record<BackgroundMode, string> = {
+  checker: 'checkerboard',
+  dark: 'bg-[#15171c]',
+  light: 'bg-[#f4f5f7]',
+}
+
 /**
  * Transient UI state — NOT persisted into the project JSON.
  */
 export const useEditorStore = defineStore('editor', {
   state: () => ({
-    zoom: 1,
     backgroundMode: 'checker' as BackgroundMode,
-    activePanel: 'text' as string,
-    selectedLayer: null as number | null,
     previewStatus: 'idle' as PreviewStatus,
     /** data URL of the current rendered frame, for actual-size preview strip */
     previewDataUrl: '' as string,
@@ -24,15 +28,13 @@ export const useEditorStore = defineStore('editor', {
     },
   }),
 
+  getters: {
+    backgroundClass: (s): string => BACKGROUND_CLASS[s.backgroundMode],
+  },
+
   actions: {
-    setZoom(z: number) {
-      this.zoom = z
-    },
     setBackgroundMode(m: BackgroundMode) {
       this.backgroundMode = m
-    },
-    setActivePanel(p: string) {
-      this.activePanel = p
     },
     setPreviewStatus(s: PreviewStatus) {
       this.previewStatus = s

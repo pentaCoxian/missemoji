@@ -5,6 +5,7 @@ import { useProjectStore } from '~/stores/project'
 import PanelSection from '~/components/controls/PanelSection.vue'
 import ToggleSwitch from '~/components/controls/ToggleSwitch.vue'
 import AppSlider from '~/components/controls/AppSlider.vue'
+import ChoiceButton from '~/components/controls/ChoiceButton.vue'
 import { PRESETS, getPreset } from '#core/animation/presets'
 
 const store = useProjectStore()
@@ -44,20 +45,15 @@ function rangeFor(key: string): { min: number; max: number; step: number } {
       />
       <template v-if="project.animation.enabled">
         <div class="grid grid-cols-2 gap-1">
-          <button
+          <ChoiceButton
             v-for="preset in PRESETS"
             :key="preset.id"
-            type="button"
-            class="rounded-app border px-2 py-2 text-xs transition-colors"
-            :class="
-              preset.id === project.animation.preset
-                ? 'border-app-accent bg-app-panel-2'
-                : 'border-app-border hover:border-app-accent'
-            "
+            class="px-2 py-2 text-xs"
+            :active="preset.id === project.animation.preset"
             @click="store.setPreset(preset.id)"
           >
             {{ preset.label }}
-          </button>
+          </ChoiceButton>
         </div>
 
         <!-- Per-preset parameter sliders -->

@@ -1,15 +1,14 @@
 //! Browser WASM APNG encoder for missemoji.
 //!
 //! Encodes an array of RGBA frames (+ per-frame delay) into an animated PNG.
-//! The `apng` crate handles the acTL/fcTL/fdAT chunk machinery; we set
-//! dispose/blend ops and feed full-canvas frames. Changed-region (delta)
-//! optimization is computed here to choose blend ops that let the PNG filters +
-//! zlib compress unchanged regions tightly.
+//! The `apng` crate handles the acTL/fcTL/fdAT chunk machinery; we feed
+//! full-canvas frames with the crate's default dispose/blend ops. The JS side
+//! (core/export/optimizeFrames.ts) merges duplicate frames before encoding.
 //!
 //! Single-threaded (no Rayon) so no SharedArrayBuffer / COOP-COEP headers are
 //! required. Built with `wasm-pack build --target bundler`.
 
-use apng::{load_dynamic_image, Encoder, Frame, PNGImage};
+use apng::{Encoder, Frame, PNGImage};
 use png::{BitDepth, ColorType};
 use wasm_bindgen::prelude::*;
 
@@ -84,9 +83,8 @@ impl ApngEncoder {
                 .map_err(|e| JsValue::from_str(&format!("encoder: {e}")))?;
 
             for (i, img) in images.iter().enumerate() {
-                let delay = self.frames[i].delay_ms as u16;
-                // Background dispose + over blend works well for transparent,
-                // delta-compressible emoji frames.
+                // fcTL delay is a u16 numerator over a 1000 denominator (ms).
+                let delay = self.frames[i].delay_ms.min(u16::MAX as u32) as u16;
                 let frame = Frame {
                     delay_num: Some(delay),
                     delay_den: Some(1000),
@@ -127,7 +125,3 @@ pub fn encode_apng(
     }
     enc.encode()
 }
-
-// Silence unused import warning if load_dynamic_image is not used directly.
-#[allow(unused_imports)]
-use load_dynamic_image as _load_dynamic_image_unused;

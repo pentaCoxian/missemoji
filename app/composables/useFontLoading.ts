@@ -9,10 +9,10 @@ import { clearMeasureCache } from '#core/layout/measureText'
 /**
  * Ensures the project's selected font family is loaded (all of the family's
  * weights, full glyph set), then signals the pipeline to re-solve/re-render
- * (spec §8 step 5). Loading via a `<link>` injection (see core/fonts/loadFont)
- * — NOT fetch() — so it isn't blocked by the CORS policy on the Google Fonts
- * CSS endpoint. Returns `ensure()` so the preview pipeline can await a font
- * before its first layout.
+ * (spec §8 step 5). Loading goes through core/fonts/loadFont: the Google CSS is
+ * fetched via the same-origin Nitro proxy and turned into FontFace objects,
+ * falling back to a `<link>` injection on static hosts. Returns `ensure()` so
+ * the preview pipeline can await a font before its first layout.
  */
 export function useFontLoading(onFontReady: () => void) {
   const projectStore = useProjectStore()

@@ -12,7 +12,6 @@ export const useFontsStore = defineStore('fonts', {
     failed: new Set<string>(),
     favorites: [] as string[],
     recent: [] as string[],
-    missingGlyphs: {} as Record<string, string[]>,
   }),
 
   getters: {
@@ -40,9 +39,6 @@ export const useFontsStore = defineStore('fonts', {
     },
     pushRecent(family: string) {
       this.recent = [family, ...this.recent.filter((f) => f !== family)].slice(0, 12)
-    },
-    setMissingGlyphs(family: string, glyphs: string[]) {
-      this.missingGlyphs[family] = glyphs
     },
   },
 })

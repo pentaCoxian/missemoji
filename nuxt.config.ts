@@ -22,6 +22,13 @@ export default defineNuxtConfig({
     '/**': { ssr: false },
   },
 
+  app: {
+    head: {
+      title: 'missemoji — Misskey APNG emoji generator',
+      htmlAttrs: { lang: 'ja' },
+    },
+  },
+
   modules: ['@pinia/nuxt', '@vueuse/nuxt', '@nuxt/eslint'],
 
   // Lint only; formatting is Prettier's job (see .prettierrc).
