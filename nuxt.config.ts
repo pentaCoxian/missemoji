@@ -24,6 +24,19 @@ export default defineNuxtConfig({
 
   modules: ['@pinia/nuxt', '@vueuse/nuxt'],
 
+  // Type-check the framework-free core/, the workers and the ambient module
+  // declarations in types/ as part of the app project (they share its lib set:
+  // dom + webworker). vitest.config.ts is a node-side file.
+  typescript: {
+    tsConfig: {
+      include: ['../core/**/*', '../workers/**/*', '../types/**/*'],
+    },
+    nodeTsConfig: {
+      compilerOptions: { types: ['node'] },
+      include: ['../vitest.config.ts'],
+    },
+  },
+
   css: ['~/assets/css/main.css'],
 
   postcss: {
