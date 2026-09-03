@@ -65,11 +65,14 @@ export function classifyChange(prev: EmojiProject, next: EmojiProject): Recomput
     if (pm !== nm) flags = merge(flags, { layout: true })
   }
 
-  // Animation preset / params -> re-sample frames + encode.
+  // Animation preset / params / timing -> re-sample frames + encode.
   if (
     changed(prev.animation.preset, next.animation.preset) ||
     changed(prev.animation.params, next.animation.params) ||
-    prev.animation.enabled !== next.animation.enabled
+    prev.animation.enabled !== next.animation.enabled ||
+    prev.animation.direction !== next.animation.direction ||
+    prev.animation.hold !== next.animation.hold ||
+    prev.animation.phase !== next.animation.phase
   ) {
     flags = merge(flags, { frames: true, encode: true })
   }

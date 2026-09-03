@@ -1,8 +1,10 @@
 import { defineStore } from 'pinia'
 import { createDefaultProject } from '#core/project/defaults'
+import { migrateProject } from '#core/project/migrate'
 import { getFontDescriptor } from '#core/fonts/catalog'
 import type {
   Align,
+  AnimDirection,
   BackgroundSpec,
   EmojiProject,
   ExportFormat,
@@ -141,6 +143,15 @@ export const useProjectStore = defineStore('project', {
     setLoop(v: boolean) {
       this.project.animation.loop = v
     },
+    setDirection(d: AnimDirection) {
+      this.project.animation.direction = d
+    },
+    setHold(v: number) {
+      this.project.animation.hold = v
+    },
+    setPhase(v: number) {
+      this.project.animation.phase = v
+    },
     setAnimParam(key: string, value: number | string | boolean) {
       this.project.animation.params = {
         ...this.project.animation.params,
@@ -166,8 +177,9 @@ export const useProjectStore = defineStore('project', {
     },
 
     // --- project lifecycle ---
-    loadProject(json: EmojiProject) {
-      this.project = json
+    /** Replace the project from any JSON (older versions are migrated). */
+    loadProject(json: unknown) {
+      this.project = migrateProject(json)
     },
     serialize(): EmojiProject {
       return JSON.parse(JSON.stringify(this.project))

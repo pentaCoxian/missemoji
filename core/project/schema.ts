@@ -82,6 +82,8 @@ export interface StyleSpec {
   decorations: DecorationSpec[]
 }
 
+export type AnimDirection = 'forward' | 'reverse' | 'pingpong'
+
 export interface AnimationSpec {
   enabled: boolean
   /** preset id from core/animation/presets.ts */
@@ -89,6 +91,11 @@ export interface AnimationSpec {
   durationMs: number
   fps: number
   loop: boolean
+  direction: AnimDirection
+  /** fraction of the loop spent at rest, 0..0.5 */
+  hold: number
+  /** loop start offset, 0..1 */
+  phase: number
   params: Record<string, number | string | boolean>
 }
 
@@ -101,8 +108,11 @@ export interface ExportSpec {
   optimizeFor: OptimizeFor
 }
 
+/** Bump when the shape changes; core/project/migrate.ts upgrades old JSON. */
+export const PROJECT_VERSION = 2
+
 export interface EmojiProject {
-  version: 1
+  version: typeof PROJECT_VERSION
   text: string
   size: {
     width: number
