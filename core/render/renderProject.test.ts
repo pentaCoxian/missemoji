@@ -141,6 +141,23 @@ describe('animation transforms reach the pixels', () => {
     expect(Math.abs(c1.x - c0.x)).toBeGreaterThan(2)
   })
 
+  it('wave moves letters independently (per-character transforms)', () => {
+    // 4 letters at t=0.125: phases 0/.25/.5/.75 → first two go down, last two up
+    const still = renderText('AAAA').frame
+    const wave = renderPreset(baseProject('AAAA'), 'wave', 0.125)
+    const halfTop = (f: typeof still, left: boolean) => {
+      const x0 = left ? 0 : f.width / 2
+      const x1 = left ? f.width / 2 : f.width
+      for (let y = 0; y < f.height; y++) {
+        for (let x = x0; x < x1; x++) if (f.rgba[(y * f.width + x) * 4 + 3]! > 10) return y
+      }
+      return f.height
+    }
+    expect(Math.abs(halfTop(still, true) - halfTop(still, false))).toBeLessThanOrEqual(1)
+    // left half moved DOWN (larger top y), right half moved UP
+    expect(halfTop(wave, true) - halfTop(wave, false)).toBeGreaterThan(2)
+  })
+
   it('opacity composites the whole layer once (max alpha ≈ opacity)', () => {
     const project = baseProject('A')
     project.style.strokes = [{ width: 6, color: '#ffffff' }]

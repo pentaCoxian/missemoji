@@ -5,6 +5,7 @@ import type { FrameState } from '../animation/model'
 import { IDENTITY_FRAME } from '../animation/model'
 import { createSurface, type Ctx2D, type RenderSurface } from './renderContext'
 import { placeText, withBlockStretch } from './renderTextLayer'
+import { applyPerChar } from './perChar'
 import { paintBackground } from './renderDecorations'
 import { paintShadows } from '../effects/shadow'
 import { paintGlows } from '../effects/glow'
@@ -78,8 +79,14 @@ function paintEmojiLayer(
 ) {
   const fullBox = { x: 0, y: 0, w: renderW, h: renderH }
 
-  // Place text geometry once; reused by every pass for perfect registration.
-  const placement = placeText(ctx, project.font, project.layout, layout, scale, fullBox)
+  // Place text geometry once (plus this frame's per-character motion); reused
+  // by every pass for perfect registration.
+  const placement = applyPerChar(
+    placeText(ctx, project.font, project.layout, layout, scale, fullBox),
+    frame.perChar,
+    renderW,
+    renderH,
+  )
 
   paintShadows(ctx, project.font, placement, project.style.shadows, scale)
 

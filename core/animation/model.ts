@@ -29,8 +29,34 @@ export interface PaintModulators {
   gradientOffset: number
 }
 
-/** Per-character transform function for text-specific presets (e.g. wave). */
-export type PerCharFn = (charIndex: number, charCount: number) => Partial<LayerTransform>
+/**
+ * Per-character motion for text-specific presets (e.g. wave). Same units as
+ * LayerTransform (translate as a canvas fraction); applied around each
+ * glyph's visual centre. No per-character opacity: overlapping glyphs would
+ * double-blend.
+ */
+export interface PerCharTransform {
+  translate: { x: number; y: number }
+  scale: { x: number; y: number }
+  /** radians */
+  rotate: number
+}
+
+export interface CharInfo {
+  /** index over the whole text */
+  index: number
+  count: number
+  line: number
+  lineCount: number
+  indexInLine: number
+  lineLength: number
+}
+
+export type PerCharFn = (c: CharInfo) => {
+  translate?: { x: number; y: number }
+  scale?: { x: number; y: number }
+  rotate?: number
+}
 
 export interface FrameState {
   layer: LayerTransform

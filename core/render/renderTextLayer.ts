@@ -14,6 +14,27 @@ export interface PlacedCluster {
   x: number
   /** alphabetic baseline y */
   y: number
+  /** advance width in placement (unstretched render) px */
+  advance: number
+  /** line ascent / descent in render px, for the glyph's visual centre */
+  ascent: number
+  descent: number
+  /** indices for per-character animation */
+  index: number
+  line: number
+  indexInLine: number
+  /** this frame's per-character motion, resolved to placement px (optional) */
+  transform?: ResolvedCharTransform
+}
+
+/** A per-glyph transform applied around the glyph's visual centre. */
+export interface ResolvedCharTransform {
+  dx: number
+  dy: number
+  sx: number
+  sy: number
+  /** radians */
+  rot: number
 }
 
 export interface TextPlacement {
@@ -22,6 +43,9 @@ export interface TextPlacement {
   /** non-uniform glyph stretch (per-letter aspect packing) */
   stretchX: number
   stretchY: number
+  /** per-line advance widths in placement px */
+  lineWidths: number[]
+  lineCount: number
 }
 
 /**
@@ -67,6 +91,8 @@ export function placeText(
   }
 
   const placed: PlacedCluster[] = []
+  const lineWidths: number[] = []
+  let index = 0
 
   resolved.lines.forEach((line, i) => {
     // Unstretched glyph advances (block-level transform applies the stretch).
@@ -78,6 +104,7 @@ export function placeText(
       lineWidth += w + letterSpacing
     }
     if (line.clusters.length > 0) lineWidth -= letterSpacing
+    lineWidths.push(lineWidth)
 
     let startX: number
     switch (layout.align) {
@@ -92,16 +119,35 @@ export function placeText(
     }
 
     const ascent = line.ascent * scale || fontPx * 0.8
+    const descent = line.descent * scale || fontPx * 0.2
     const baseline = top + i * lineGap + ascent
 
     let penX = startX
     line.clusters.forEach((c, ci) => {
-      placed.push({ cluster: c, x: penX, y: baseline })
+      placed.push({
+        cluster: c,
+        x: penX,
+        y: baseline,
+        advance: widths[ci]!,
+        ascent,
+        descent,
+        index,
+        line: i,
+        indexInLine: ci,
+      })
+      index++
       penX += widths[ci]! + letterSpacing
     })
   })
 
-  return { clusters: placed, fontPx, stretchX, stretchY }
+  return {
+    clusters: placed,
+    fontPx,
+    stretchX,
+    stretchY,
+    lineWidths,
+    lineCount: resolved.lines.length,
+  }
 }
 
 export type TextPass = 'fill' | 'stroke'
@@ -109,7 +155,9 @@ export type TextPass = 'fill' | 'stroke'
 /**
  * Draw the placed text using the current ctx paint settings. `pass` selects
  * fillText vs strokeText; the caller sets fillStyle/strokeStyle/lineWidth/etc.
- * The same placement is reused across passes for perfect registration.
+ * The same placement is reused across passes for perfect registration, and a
+ * cluster's resolved per-character transform (if any) is applied around its
+ * visual centre.
  */
 export function paintPlacedText(
   ctx: Ctx2D,
@@ -119,9 +167,28 @@ export function paintPlacedText(
 ) {
   ctx.font = cssFont(font, placement.fontPx)
   ctx.textBaseline = 'alphabetic'
+  const draw = (text: string, x: number, y: number) => {
+    if (pass === 'fill') ctx.fillText(text, x, y)
+    else ctx.strokeText(text, x, y)
+  }
   for (const p of placement.clusters) {
-    if (pass === 'fill') ctx.fillText(p.cluster, p.x, p.y)
-    else ctx.strokeText(p.cluster, p.x, p.y)
+    const t = p.transform
+    if (!t) {
+      draw(p.cluster, p.x, p.y)
+    } else if (t.sx === 1 && t.sy === 1 && t.rot === 0) {
+      // translate-only: no save/restore, gradient space stays canvas-fixed
+      draw(p.cluster, p.x + t.dx, p.y + t.dy)
+    } else {
+      const cx = p.x + p.advance / 2
+      const cy = p.y - (p.ascent - p.descent) / 2
+      ctx.save()
+      ctx.translate(cx + t.dx, cy + t.dy)
+      ctx.rotate(t.rot)
+      ctx.scale(t.sx, t.sy)
+      ctx.translate(-cx, -cy)
+      draw(p.cluster, p.x, p.y)
+      ctx.restore()
+    }
   }
 }
 

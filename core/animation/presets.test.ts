@@ -78,8 +78,9 @@ describe('presets loop seamlessly', () => {
       const a = preset.sample(0, presetDefaults(preset))
       const b = preset.sample(1, presetDefaults(preset))
       if (a.perChar && b.perChar) {
-        const ya = a.perChar(2, 5).translate?.y ?? 0
-        const yb = b.perChar(2, 5).translate?.y ?? 0
+        const info = { index: 2, count: 5, line: 0, lineCount: 1, indexInLine: 2, lineLength: 5 }
+        const ya = a.perChar(info).translate?.y ?? 0
+        const yb = b.perChar(info).translate?.y ?? 0
         expect(ya).toBeCloseTo(yb, 5)
       }
     })
