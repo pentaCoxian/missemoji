@@ -190,6 +190,39 @@ describe('animation transforms reach the pixels', () => {
     expect(halfTop(wave, true) - halfTop(wave, false)).toBeGreaterThan(2)
   })
 
+  it('spin at a quarter loop swaps the content box dimensions', () => {
+    const still = renderPreset(baseProject('AB'), 'spin', 0)
+    const quarter = renderPreset(baseProject('AB'), 'spin', 0.25)
+    const b0 = getAlphaBounds(still.rgba, still.width, still.height, 10)
+    const b1 = getAlphaBounds(quarter.rgba, quarter.width, quarter.height, 10)
+    const w0 = b0.maxX - b0.minX
+    const h0 = b0.maxY - b0.minY
+    const w1 = b1.maxX - b1.minX
+    const h1 = b1.maxY - b1.minY
+    expect(Math.abs(w1 - h0)).toBeLessThanOrEqual(2)
+    expect(Math.abs(h1 - w0)).toBeLessThanOrEqual(2)
+  })
+
+  it('blink is fully visible at the loop ends and off at mid-loop', () => {
+    const on = renderPreset(baseProject('A'), 'blink', 0)
+    const off = renderPreset(baseProject('A'), 'blink', 0.5)
+    expect(maxAlpha(on.rgba)).toBeGreaterThan(200)
+    expect(maxAlpha(off.rgba)).toBeLessThanOrEqual(2)
+    const half = baseProject('A')
+    half.animation.params = { minOpacity: 0.5 }
+    const dim = renderPreset(half, 'blink', 0.5)
+    expect(maxAlpha(dim.rgba)).toBeGreaterThanOrEqual(110)
+    expect(maxAlpha(dim.rgba)).toBeLessThanOrEqual(145)
+  })
+
+  it('gangan shoves the text sideways at its first peak', () => {
+    const still = renderText('A').frame
+    const shoved = renderPreset(baseProject('A'), 'gangan', 1 / 16) // freq 4 → sin peak
+    const c0 = centroid(still.rgba, still.width, still.height)
+    const c1 = centroid(shoved.rgba, shoved.width, shoved.height)
+    expect(Math.abs(c1.x - c0.x)).toBeGreaterThan(4)
+  })
+
   it('opacity composites the whole layer once (max alpha ≈ opacity)', () => {
     const project = baseProject('A')
     project.style.strokes = [{ width: 6, color: '#ffffff' }]

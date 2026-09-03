@@ -67,6 +67,10 @@ function frame(
 }
 
 const p = (params: Record<string, number>, k: string, d: number) => params[k] ?? d
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+/** Saturating sine shaper: hard-edged motion that still has integer-cycle loops. */
+const hard = (v: number) => clamp(1.6 * v, -1, 1)
+const TAU = Math.PI * 2
 
 const amount = (def: number, min: number, max: number): ParamDef => ({
   key: 'amount',
@@ -195,6 +199,57 @@ export const PRESETS: AnimationPreset[] = [
       // tiny synchronized scale so the glow feels alive without clipping
       const s = 1 + 0.02 * breathe(t)
       return frame({ scale: { x: s, y: s } }, { glowIntensity: g })
+    },
+  },
+
+  // --- Misskey classics ---
+  {
+    id: 'spin',
+    label: 'Spin',
+    params: [{ key: 'turns', label: 'Turns', min: 1, max: 3, step: 1, default: 1, integer: true }],
+    sample: (t, params) => {
+      const turns = Math.max(1, Math.round(p(params, 'turns', 1)))
+      // whole turns per loop: rotate(1) ≡ rotate(0) mod 2π
+      return frame({ rotate: TAU * turns * t })
+    },
+  },
+  {
+    id: 'blink',
+    label: 'Blink',
+    params: [
+      { key: 'times', label: 'Blinks', min: 1, max: 4, step: 1, default: 1, integer: true },
+      { key: 'softness', label: 'Softness', min: 0, max: 1, step: 0.05, default: 0.3 },
+      { key: 'minOpacity', label: 'Min opacity', min: 0, max: 0.9, step: 0.05, default: 0 },
+    ],
+    sample: (t, params) => {
+      const times = Math.max(1, Math.round(p(params, 'times', 1)))
+      const soft = Math.max(0.02, p(params, 'softness', 0.3))
+      const min = p(params, 'minOpacity', 0)
+      // cosine window per blink, sharpened by softness (0 = hard on/off);
+      // starts and ends fully visible so the loop is seamless
+      const u = (t * times) % 1
+      const e = (1 + Math.cos(TAU * u)) / 2
+      const v = clamp((e - 0.5) / soft + 0.5, 0, 1)
+      return frame({ opacity: min + (1 - min) * v })
+    },
+  },
+  {
+    id: 'gangan',
+    label: 'Gangan',
+    params: [
+      amount(0.06, 0.02, 0.15),
+      { key: 'freq', label: 'Speed', min: 2, max: 8, step: 1, default: 4, integer: true },
+      { key: 'tilt', label: 'Tilt', min: 0, max: 15, step: 1, default: 4, unit: '°' },
+    ],
+    sample: (t, params) => {
+      const a = p(params, 'amount', 0.06)
+      const f = Math.max(1, Math.round(p(params, 'freq', 4)))
+      const tilt = (p(params, 'tilt', 4) * Math.PI) / 180
+      // hard, punchy shake: saturated sines with integer frequencies (seamless)
+      const x = a * hard(Math.sin(TAU * f * t))
+      const y = 0.5 * a * hard(Math.sin(2 * TAU * f * t))
+      const rot = tilt * hard(Math.cos(TAU * f * t))
+      return frame({ translate: { x, y }, rotate: rot })
     },
   },
 ]
