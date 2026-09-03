@@ -8,6 +8,7 @@ import PreviewStage from '~/components/preview/PreviewStage.vue'
 import BackgroundToggle from '~/components/preview/BackgroundToggle.vue'
 import PlaybackControls from '~/components/preview/PlaybackControls.vue'
 import SizePreviewStrip from '~/components/preview/SizePreviewStrip.vue'
+import ProjectMenu from '~/components/header/ProjectMenu.vue'
 
 // Left panel tabs (Content vs Font); right panel is Style/Animation/Export.
 const leftTab = ref<'content' | 'font'>('content')
@@ -22,6 +23,7 @@ const leftTab = ref<'content' | 'font'>('content')
         <h1 class="text-sm font-semibold">missemoji</h1>
         <span class="text-xs text-app-muted">APNG emoji generator for Misskey</span>
       </div>
+      <ProjectMenu />
     </header>
 
     <div class="flex min-h-0 flex-1">

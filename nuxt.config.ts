@@ -74,6 +74,7 @@ export default defineNuxtConfig({
         'grapheme-splitter',
         'upng-js',
         'gifenc',
+        'fflate',
         '@vue/devtools-core',
         '@vue/devtools-kit',
       ],
