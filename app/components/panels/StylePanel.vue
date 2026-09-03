@@ -7,6 +7,7 @@ import ColorPicker from '~/components/controls/ColorPicker.vue'
 import AppSlider from '~/components/controls/AppSlider.vue'
 import ToggleSwitch from '~/components/controls/ToggleSwitch.vue'
 import SegmentedControl from '~/components/controls/SegmentedControl.vue'
+import BackgroundSection from '~/components/panels/style/BackgroundSection.vue'
 
 const store = useProjectStore()
 const { project } = storeToRefs(store)
@@ -204,5 +205,7 @@ const strokeCounts = [
         />
       </template>
     </PanelSection>
+
+    <BackgroundSection />
   </div>
 </template>

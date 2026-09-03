@@ -39,6 +39,11 @@ const sizes = [
   { w: 128, h: 128, label: '128' },
   { w: 256, h: 256, label: '256' },
 ]
+const renderScales: { value: number; label: string }[] = [
+  { value: 2, label: '2×' },
+  { value: 4, label: '4×' },
+  { value: 8, label: '8×' },
+]
 </script>
 
 <template>
@@ -67,6 +72,17 @@ const sizes = [
             {{ s.label }}×{{ s.label }}
           </ChoiceButton>
         </div>
+      </div>
+      <div>
+        <SegmentedControl
+          :model-value="project.export.renderScale"
+          :options="renderScales"
+          label="Render scale"
+          @update:model-value="store.setRenderScale($event)"
+        />
+        <p class="mt-1 text-[10px] text-app-muted">
+          Supersampling for cleaner edges. 8× renders up to 2048px surfaces; exports take longer.
+        </p>
       </div>
       <SegmentedControl
         :model-value="project.export.optimizeFor"

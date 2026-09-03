@@ -21,6 +21,8 @@ export interface FontDescriptor {
   weights: number[]
   /** true if the family covers Japanese (jp subset). */
   japanese: boolean
+  /** true if Google serves real italic faces for this family */
+  italic?: boolean
 }
 
 export const FONT_GROUP_LABELS: Record<FontGroup, string> = {
@@ -93,13 +95,20 @@ export const FONT_CATALOG: FontDescriptor[] = [
     group: 'latin-condensed',
     weights: [400, 600, 700, 800],
     japanese: false,
+    italic: true,
   },
 
   // Handwritten
   { family: 'Caveat', group: 'handwritten', weights: [400, 600, 700], japanese: false },
   { family: 'Pacifico', group: 'handwritten', weights: [400], japanese: false },
   { family: 'Permanent Marker', group: 'handwritten', weights: [400], japanese: false },
-  { family: 'Shantell Sans', group: 'handwritten', weights: [400, 600, 700], japanese: false },
+  {
+    family: 'Shantell Sans',
+    group: 'handwritten',
+    weights: [400, 600, 700],
+    japanese: false,
+    italic: true,
+  },
   { family: 'Yomogi', group: 'handwritten', weights: [400], japanese: true },
 
   // Pixel / retro

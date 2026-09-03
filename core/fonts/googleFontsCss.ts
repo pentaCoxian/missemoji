@@ -4,17 +4,23 @@ import type { FontDescriptor } from './catalog'
  * Build a keyless Google Fonts CSS2 URL (spec §8). No Developer API key needed.
  * Optionally subsets with `text=` to fetch only the glyphs in the emoji text,
  * which keeps JP font downloads tiny. We always include the requested weight.
+ * Families with real italics get both the upright and italic faces
+ * (`ital,wght@0,W;1,W`) so switching style needs no reload.
  */
 export function buildCss2Url(
   descriptor: FontDescriptor,
-  opts: { weights?: number[]; text?: string } = {},
+  opts: { weights?: number[]; text?: string; italic?: boolean } = {},
 ): string {
   const family = descriptor.family.replace(/ /g, '+')
   const weights = (opts.weights && opts.weights.length ? opts.weights : descriptor.weights)
     .slice()
     .sort((a, b) => a - b)
+  const italic = opts.italic ?? descriptor.italic ?? false
 
-  const params: string[] = [`family=${family}:wght@${weights.join(';')}`]
+  const axis = italic
+    ? `ital,wght@${[...weights.map((w) => `0,${w}`), ...weights.map((w) => `1,${w}`)].join(';')}`
+    : `wght@${weights.join(';')}`
+  const params: string[] = [`family=${family}:${axis}`]
   if (opts.text && opts.text.length > 0) {
     params.push(`text=${encodeURIComponent(opts.text)}`)
   }

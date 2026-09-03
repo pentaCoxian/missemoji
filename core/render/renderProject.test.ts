@@ -125,6 +125,38 @@ describe('renderProjectFrame (headless)', () => {
   })
 })
 
+describe('background layer', () => {
+  it('solid background fills the corners; blob padding leaves them clear', () => {
+    const solid = baseProject('A')
+    solid.style.background = { type: 'solid', color: '#3366ff' }
+    const measure = createSurface(64, 64)
+    const solidOut = renderProjectFrame(solid, { layout: solveLayout(measure.ctx, solid) })
+    expect(solidOut.rgba[3]).toBe(255)
+
+    const blob = baseProject('A')
+    blob.style.background = { type: 'blob', color: '#3366ff', radius: 24, padding: 8 }
+    const blobOut = renderProjectFrame(blob, { layout: solveLayout(measure.ctx, blob) })
+    expect(blobOut.rgba[3]).toBe(0) // corner, inside the padding
+    const mid = ((blobOut.height / 2) * blobOut.width + 10) * 4 // x=10 > padding 8, mid row
+    expect(blobOut.rgba[mid + 3]).toBe(255)
+  })
+
+  it('blob geometry is in final px regardless of render scale', () => {
+    const firstOpaqueX = (scale: number) => {
+      const p = baseProject('A')
+      p.export.renderScale = scale
+      p.style.background = { type: 'blob', color: '#3366ff', radius: 20, padding: 12 }
+      const out = renderProjectFrame(p, { layout: solveLayout(createSurface(64, 64).ctx, p) })
+      const y = Math.floor(out.height / 2)
+      for (let x = 0; x < out.width; x++) if (out.rgba[(y * out.width + x) * 4 + 3]! > 128) return x
+      return -1
+    }
+    expect(firstOpaqueX(2)).toBe(firstOpaqueX(4))
+    expect(firstOpaqueX(4)).toBeGreaterThanOrEqual(11)
+    expect(firstOpaqueX(4)).toBeLessThanOrEqual(13)
+  })
+})
+
 describe('motion reserve prevents clipping', () => {
   for (const preset of PRESETS) {
     if (preset.clipsToFrame) continue

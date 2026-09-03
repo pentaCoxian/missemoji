@@ -29,6 +29,19 @@ describe('buildCss2Url', () => {
   })
 })
 
+describe('buildCss2Url italics', () => {
+  it('requests upright + italic tuples for families that have italics', () => {
+    const url = buildCss2Url({
+      family: 'Shantell Sans',
+      group: 'handwritten',
+      weights: [700, 400],
+      japanese: false,
+      italic: true,
+    })
+    expect(url).toContain('family=Shantell+Sans:ital,wght@0,400;0,700;1,400;1,700')
+  })
+})
+
 describe('parseFontFaces', () => {
   const css = `
 /* [1] */
