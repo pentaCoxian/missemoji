@@ -13,6 +13,9 @@ export interface ExportResult {
   blobUrl: string
   bytes: number
   format: ExportFormat
+  filename: string
+  /** encoder backend that produced the file (e.g. 'upng-js' / 'wasm') */
+  backendUsed?: string
 }
 
 /**

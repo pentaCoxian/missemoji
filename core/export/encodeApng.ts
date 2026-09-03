@@ -23,7 +23,8 @@ export const apngEncoder: EmojiEncoder = {
     // 'size' optimize mode enables palette quantization for smaller files.
     const quantizeColors = opts.optimizeFor === 'size' ? 256 : 0
 
-    const encoded = await getApngBackend().encode(renderFrames, {
+    const backend = opts.apngBackend ?? getApngBackend()
+    const encoded = await backend.encode(renderFrames, {
       width: opts.width,
       height: opts.height,
       loop: opts.loop,
@@ -33,6 +34,12 @@ export const apngEncoder: EmojiEncoder = {
     const data = patchApngLoop(encoded, opts.loop)
     opts.onProgress?.(1)
 
-    return { format: 'apng', data, bytes: data.byteLength, mime: 'image/apng' }
+    return {
+      format: 'apng',
+      data,
+      bytes: data.byteLength,
+      mime: 'image/apng',
+      framesEncoded: renderFrames.length,
+    }
   },
 }

@@ -106,8 +106,12 @@ const sizes = [
       </div>
 
       <p v-if="exportStore.lastResult" class="text-xs text-app-muted">
-        Last export: {{ exportStore.lastResult.format.toUpperCase() }} ·
-        {{ Math.round(exportStore.lastResult.bytes / 1024) }}KB
+        Last export: {{ exportStore.lastResult.filename }} ·
+        {{ Math.round(exportStore.lastResult.bytes / 1024) }}KB<template
+          v-if="exportStore.lastResult.backendUsed"
+        >
+          · {{ exportStore.lastResult.backendUsed }}</template
+        >
       </p>
 
       <WarningList :warnings="exportStore.warnings" />

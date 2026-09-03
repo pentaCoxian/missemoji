@@ -1,25 +1,46 @@
 /// <reference lib="webworker" />
 /**
- * Render worker (spec §18). Owns an OffscreenCanvas (created inside the worker
- * via renderContext) and renders all animation frames off the main thread,
- * posting each frame's RGBA as a transferable ArrayBuffer. Also serves
- * analyze-bounds at export scale. Imports ONLY pure #core code.
+ * Render worker (spec §18). Loads the fonts it is handed into its own
+ * FontFaceSet, renders every frame of a project off the main thread through
+ * the shared frame sequence, and streams the results back either as
+ * transferable ImageBitmaps (preview) or RGBA buffers (export). Jobs run one
+ * at a time and yield between frames so a `cancel` can land mid-job.
+ * Imports ONLY pure #core code.
  */
-import type { RenderRequest, RenderResponse, TransferableFrame } from './protocol'
-import type { EmojiProject } from '#core/project/schema'
+import type { RenderRequest, RenderResponse, RenderJobRequest } from './protocol'
+import type { FrameStats } from '#core/types'
 import type { LayoutResult } from '#core/layout/types'
-import { buildFramePlan } from '#core/animation/frames'
-import { sampleFrameState } from '#core/animation/sampleAnimation'
-import { renderProjectFrame } from '#core/render/renderProject'
-import { createSurface } from '#core/render/renderContext'
-import { placeText, paintPlacedText, withBlockStretch } from '#core/render/renderTextLayer'
-import { getAlphaBounds } from '#core/layout/pixelBounds'
+import { solveLayout } from '#core/layout/solve'
+import { computeOvershoot } from '#core/animation/overshoot'
+import { renderFrameSequence } from '#core/render/renderFrameSequence'
+import { createSurface, hasOffscreenCanvas, supportsCanvasFilter } from '#core/render/renderContext'
+import { ensureFontFaces, workerFontsAvailable } from '#core/fonts/workerFonts'
+import { yieldMacrotask } from '#core/util/yield'
 
 const cancelled = new Set<string>()
+let queue: Promise<void> = Promise.resolve()
+let measureCtx: ReturnType<typeof createSurface>['ctx'] | null = null
 
 function post(msg: RenderResponse, transfer?: Transferable[]) {
   ;(self as DedicatedWorkerGlobalScope).postMessage(msg, transfer ?? [])
 }
+
+function canvasFilterSupported(): boolean {
+  try {
+    return supportsCanvasFilter(createSurface(1, 1).ctx)
+  } catch {
+    return false
+  }
+}
+
+post({
+  type: 'hello',
+  caps: {
+    fonts: workerFontsAvailable(),
+    offscreenCanvas: hasOffscreenCanvas(),
+    canvasFilter: canvasFilterSupported(),
+  },
+})
 
 self.onmessage = (e: MessageEvent<RenderRequest>) => {
   const msg = e.data
@@ -27,77 +48,95 @@ self.onmessage = (e: MessageEvent<RenderRequest>) => {
     cancelled.add(msg.jobId)
     return
   }
+  // Sequential job queue; a failure in one job never blocks the next.
+  queue = queue.then(() => handle(msg)).catch(() => undefined)
+}
 
+async function handle(msg: Exclude<RenderRequest, { type: 'cancel' }>) {
+  const jobId = msg.jobId
   try {
-    if (msg.type === 'render-frames') {
-      renderFrames(msg.jobId, msg.project, msg.layout)
-    } else if (msg.type === 'analyze-bounds') {
-      analyzeBounds(msg.jobId, msg.project, msg.layout, msg.threshold)
+    if (msg.type === 'load-fonts') {
+      const r = await ensureFontFaces(msg.faces)
+      post({ type: 'fonts-loaded', jobId, loaded: r.loaded, failed: r.failed })
+    } else if (msg.type === 'render') {
+      await render(jobId, msg)
     }
   } catch (err) {
-    post({ type: 'error', jobId: msg.jobId, message: (err as Error).message })
+    const message = (err as Error).message
+    if (message === 'cancelled') post({ type: 'cancelled', jobId })
+    else post({ type: 'error', jobId, message })
+  } finally {
+    cancelled.delete(jobId)
   }
 }
 
-function renderFrames(jobId: string, project: EmojiProject, layout: LayoutResult) {
-  const plan = buildFramePlan(project.animation)
-  const total = plan.length
+async function render(jobId: string, req: RenderJobRequest) {
+  const isCancelled = () => cancelled.has(jobId)
+  const { project, faces, output } = req
 
-  for (let i = 0; i < total; i++) {
-    if (cancelled.has(jobId)) {
-      post({ type: 'cancelled', jobId })
-      cancelled.delete(jobId)
-      return
-    }
-    const step = plan[i]!
-    const frameState = project.animation.enabled
-      ? sampleFrameState(project.animation, step.progress)
-      : undefined
-    const rf = renderProjectFrame(project, {
-      layout,
-      frame: frameState,
-      delayMs: step.delayMs,
-    })
+  if (faces.length) {
+    post({ type: 'progress', jobId, stage: 'fonts', done: 0, total: 1 })
+    await ensureFontFaces(faces)
+    post({ type: 'progress', jobId, stage: 'fonts', done: 1, total: 1 })
+  }
+  if (isCancelled()) throw new Error('cancelled')
 
-    // Copy the RGBA into a fresh ArrayBuffer we can transfer.
-    const buf = rf.rgba.buffer.slice(
-      rf.rgba.byteOffset,
-      rf.rgba.byteOffset + rf.rgba.byteLength,
-    ) as ArrayBuffer
-    const frame: TransferableFrame = {
-      index: i,
-      rgba: buf,
-      width: rf.width,
-      height: rf.height,
-      delayMs: rf.delayMs,
-    }
-    post({ type: 'frame', jobId, frame }, [buf])
-    post({ type: 'progress', jobId, stage: 'render', done: i + 1, total })
+  let layout: LayoutResult | null = req.layout
+  if (!layout) {
+    post({ type: 'progress', jobId, stage: 'layout', done: 0, total: 1 })
+    measureCtx ??= createSurface(64, 64).ctx
+    layout = solveLayout(measureCtx, project, computeOvershoot(project))
+    post({ type: 'progress', jobId, stage: 'layout', done: 1, total: 1 })
   }
 
-  post({ type: 'frames-done', jobId, count: total })
-}
+  const stats: FrameStats[] = []
+  let count = 0
+  for await (const item of renderFrameSequence(project, layout, {
+    shouldCancel: isCancelled,
+    yieldFn: yieldMacrotask,
+  })) {
+    stats.push(item.stats)
+    count++
+    const { frame } = item
+    if (output === 'bitmap') {
+      const bitmap = await createImageBitmap(new ImageData(frame.rgba, frame.width, frame.height))
+      if (isCancelled()) {
+        bitmap.close()
+        throw new Error('cancelled')
+      }
+      post(
+        {
+          type: 'bitmap',
+          jobId,
+          index: item.index,
+          total: item.total,
+          bitmap,
+          delayMs: frame.delayMs,
+          stats: item.stats,
+        },
+        [bitmap],
+      )
+    } else {
+      // getImageData hands us a fresh buffer: transfer it as-is (zero copy).
+      const rgba = frame.rgba.buffer
+      post(
+        {
+          type: 'frame',
+          jobId,
+          frame: {
+            index: item.index,
+            rgba,
+            width: frame.width,
+            height: frame.height,
+            delayMs: frame.delayMs,
+          },
+          stats: item.stats,
+        },
+        [rgba],
+      )
+    }
+    post({ type: 'progress', jobId, stage: 'render', done: item.index + 1, total: item.total })
+  }
 
-function analyzeBounds(
-  jobId: string,
-  project: EmojiProject,
-  layout: LayoutResult,
-  threshold: number,
-) {
-  const w = project.export.finalWidth
-  const h = project.export.finalHeight
-  const surface = createSurface(w, h)
-  const placement = placeText(surface.ctx, project.font, project.layout, layout, 1, {
-    x: 0,
-    y: 0,
-    w,
-    h,
-  })
-  surface.ctx.fillStyle = '#ffffff'
-  withBlockStretch(surface.ctx, placement, { x: 0, y: 0, w, h }, () =>
-    paintPlacedText(surface.ctx, project.font, placement, 'fill'),
-  )
-  const img = surface.ctx.getImageData(0, 0, w, h)
-  const bounds = getAlphaBounds(img.data, w, h, threshold)
-  post({ type: 'bounds', jobId, bounds })
+  post({ type: 'done', jobId, count, layout, stats })
 }

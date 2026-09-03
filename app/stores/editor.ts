@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 
 export type BackgroundMode = 'checker' | 'dark' | 'light'
-export type PreviewStatus = 'idle' | 'laying-out' | 'rendering' | 'ready'
 
 /** Tailwind classes for each preview backdrop (shared by stage + size strip). */
 const BACKGROUND_CLASS: Record<BackgroundMode, string> = {
@@ -16,9 +15,6 @@ const BACKGROUND_CLASS: Record<BackgroundMode, string> = {
 export const useEditorStore = defineStore('editor', {
   state: () => ({
     backgroundMode: 'checker' as BackgroundMode,
-    previewStatus: 'idle' as PreviewStatus,
-    /** data URL of the current rendered frame, for actual-size preview strip */
-    previewDataUrl: '' as string,
     /** APNG encoder backend: 'upng' (default) or 'wasm' (Rust→WASM) */
     apngEngine: 'upng' as 'upng' | 'wasm',
     playback: {
@@ -35,12 +31,6 @@ export const useEditorStore = defineStore('editor', {
   actions: {
     setBackgroundMode(m: BackgroundMode) {
       this.backgroundMode = m
-    },
-    setPreviewStatus(s: PreviewStatus) {
-      this.previewStatus = s
-    },
-    setPreviewDataUrl(url: string) {
-      this.previewDataUrl = url
     },
     setApngEngine(e: 'upng' | 'wasm') {
       this.apngEngine = e

@@ -16,6 +16,8 @@ export interface EncodeOptions {
   shouldCancel?: () => boolean
   /** progress callback 0..1 */
   onProgress?: (p: number) => void
+  /** APNG only: backend instance to use (defaults to the registered one) */
+  apngBackend?: ApngBackend
 }
 
 export interface EncodedResult {
@@ -23,6 +25,8 @@ export interface EncodedResult {
   data: Uint8Array
   bytes: number
   mime: string
+  /** frames actually written (after duplicate merging) */
+  framesEncoded?: number
 }
 
 export interface EmojiEncoder {

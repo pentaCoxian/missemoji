@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useEditorStore } from '~/stores/editor'
 import { useProjectStore } from '~/stores/project'
 import { usePreviewPipeline } from '~/composables/usePreviewPipeline'
+import { usePreviewFrames } from '~/composables/usePreviewFrames'
 
 const editor = useEditorStore()
 const projectStore = useProjectStore()
 const { backgroundClass } = storeToRefs(editor)
 const { project } = storeToRefs(projectStore)
+const { status, error, renderer } = usePreviewFrames()
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const { init } = usePreviewPipeline(canvasRef)
@@ -19,25 +21,53 @@ onMounted(() => {
 
 // Display the final-size canvas scaled up for a comfortable editing view.
 const displaySize = 320
+
+const statusLabel = computed(() => {
+  switch (status.value) {
+    case 'solving':
+    case 'rendering':
+      return 'rendering…'
+    case 'error':
+      return `render failed: ${error.value ?? 'unknown error'}`
+    default:
+      return ''
+  }
+})
 </script>
 
 <template>
   <div class="flex h-full flex-col items-center justify-center gap-6">
-    <div
-      class="flex items-center justify-center overflow-hidden rounded-app shadow-lg"
-      :class="backgroundClass"
-      :style="{ width: displaySize + 'px', height: displaySize + 'px' }"
-    >
-      <canvas
-        ref="canvasRef"
-        class="[image-rendering:auto]"
+    <div class="relative">
+      <div
+        class="flex items-center justify-center overflow-hidden rounded-app shadow-lg"
+        :class="backgroundClass"
         :style="{ width: displaySize + 'px', height: displaySize + 'px' }"
-      />
+      >
+        <canvas
+          ref="canvasRef"
+          class="[image-rendering:auto]"
+          :style="{ width: displaySize + 'px', height: displaySize + 'px' }"
+        />
+      </div>
+      <div
+        v-if="statusLabel"
+        class="absolute right-2 top-2 flex items-center gap-1.5 rounded-full bg-app-panel/80 px-2 py-0.5 text-[10px]"
+        :class="status === 'error' ? 'text-app-danger' : 'text-app-muted'"
+      >
+        <span
+          class="inline-block h-1.5 w-1.5 rounded-full"
+          :class="status === 'error' ? 'bg-app-danger' : 'animate-pulse bg-app-accent'"
+        />
+        {{ statusLabel }}
+      </div>
     </div>
 
     <div class="text-center text-xs text-app-muted">
       Final size: {{ project.export.finalWidth }}×{{ project.export.finalHeight }} · render
       {{ project.export.renderScale }}×
+      <span v-if="renderer === 'main'" title="Fonts are not available to the render worker here">
+        · main-thread renderer
+      </span>
     </div>
   </div>
 </template>
