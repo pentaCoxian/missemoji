@@ -12,7 +12,7 @@ import { buildFramePlan } from '#core/animation/frames'
 import { sampleFrameState } from '#core/animation/sampleAnimation'
 import { renderProjectFrame } from '#core/render/renderProject'
 import { createSurface } from '#core/render/renderContext'
-import { placeText, paintPlacedText } from '#core/render/renderTextLayer'
+import { placeText, paintPlacedText, withBlockStretch } from '#core/render/renderTextLayer'
 import { getAlphaBounds } from '#core/layout/pixelBounds'
 
 const cancelled = new Set<string>()
@@ -94,7 +94,9 @@ function analyzeBounds(
     h,
   })
   surface.ctx.fillStyle = '#ffffff'
-  paintPlacedText(surface.ctx, project.font, placement, 'fill')
+  withBlockStretch(surface.ctx, placement, { x: 0, y: 0, w, h }, () =>
+    paintPlacedText(surface.ctx, project.font, placement, 'fill'),
+  )
   const img = surface.ctx.getImageData(0, 0, w, h)
   const bounds = getAlphaBounds(img.data, w, h, threshold)
   post({ type: 'bounds', jobId, bounds })

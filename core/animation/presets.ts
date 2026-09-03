@@ -179,8 +179,8 @@ export const PRESETS: AnimationPreset[] = [
       const a = p(params, 'amount', 0.1)
       // per-character vertical wave; each char is a full smooth cycle (phase
       // shifted), so the whole word loops seamlessly
-      return frame({}, {}, (i, count) => {
-        const phase = count > 1 ? i / count : 0
+      return frame({}, {}, (c) => {
+        const phase = c.count > 1 ? c.index / c.count : 0
         const y = Math.sin((t + phase) * Math.PI * 2) * a
         return { translate: { x: 0, y } }
       })
