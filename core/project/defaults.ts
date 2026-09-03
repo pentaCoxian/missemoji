@@ -1,4 +1,4 @@
-import type { EmojiProject } from './schema'
+import { PROJECT_VERSION, type EmojiProject } from './schema'
 
 /**
  * Factory for a fresh EmojiProject. Defaults mirror the spec's APNG defaults
@@ -6,7 +6,7 @@ import type { EmojiProject } from './schema'
  */
 export function createDefaultProject(): EmojiProject {
   return {
-    version: 1,
+    version: PROJECT_VERSION,
     text: 'やった！',
     size: { width: 128, height: 128 },
     font: {
@@ -38,6 +38,9 @@ export function createDefaultProject(): EmojiProject {
       durationMs: 1400,
       fps: 12,
       loop: true,
+      direction: 'forward',
+      hold: 0,
+      phase: 0,
       params: {},
     },
     export: {

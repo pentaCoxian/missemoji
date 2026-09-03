@@ -6,12 +6,20 @@ import PanelSection from '~/components/controls/PanelSection.vue'
 import ToggleSwitch from '~/components/controls/ToggleSwitch.vue'
 import AppSlider from '~/components/controls/AppSlider.vue'
 import ChoiceButton from '~/components/controls/ChoiceButton.vue'
+import SegmentedControl from '~/components/controls/SegmentedControl.vue'
+import type { AnimDirection } from '#core/project/schema'
 import { PRESETS, getPreset } from '#core/animation/presets'
 
 const store = useProjectStore()
 const { project } = storeToRefs(store)
 
 const activePreset = computed(() => getPreset(project.value.animation.preset))
+
+const directions: { value: AnimDirection; label: string }[] = [
+  { value: 'forward', label: 'Forward' },
+  { value: 'reverse', label: 'Reverse' },
+  { value: 'pingpong', label: 'Ping-pong' },
+]
 
 // Resolve current value for a preset param (user override or default).
 function paramValue(key: string, fallback: number): number {
@@ -71,6 +79,28 @@ function paramValue(key: string, fallback: number): number {
           label="Duration"
           suffix="ms"
           @update:model-value="store.setDuration($event)"
+        />
+        <SegmentedControl
+          :model-value="project.animation.direction"
+          :options="directions"
+          label="Direction"
+          @update:model-value="store.setDirection($event)"
+        />
+        <AppSlider
+          :model-value="project.animation.hold"
+          :min="0"
+          :max="0.5"
+          :step="0.05"
+          label="Hold at rest"
+          @update:model-value="store.setHold($event)"
+        />
+        <AppSlider
+          :model-value="project.animation.phase"
+          :min="0"
+          :max="1"
+          :step="0.05"
+          label="Phase"
+          @update:model-value="store.setPhase($event)"
         />
         <ToggleSwitch
           :model-value="project.animation.loop"
