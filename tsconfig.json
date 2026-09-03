@@ -1,0 +1,13 @@
+{
+  // https://nuxt.com/docs/guide/concepts/typescript
+  "extends": "./.nuxt/tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "#core": ["./core/index.ts"],
+      "#core/*": ["./core/*"],
+      "#workers/*": ["./workers/*"],
+      "#types/*": ["./types/*"]
+    }
+  },
+  "include": ["core/**/*", "workers/**/*", "types/**/*"]
+}

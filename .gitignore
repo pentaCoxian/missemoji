@@ -1,0 +1,18 @@
+# Nuxt
+.nuxt/
+.output/
+.data/
+dist
+
+# deps
+node_modules/
+
+# wasm build intermediates (the pkg/ output is committed for reproducibility)
+wasm/apng-encoder/target/
+# pkg-node is a test-only nodejs-target build; not shipped
+wasm/apng-encoder/pkg-node/
+
+# misc
+.DS_Store
+*.log
+.env
