@@ -1,0 +1,43 @@
+{
+  "name": "missemoji",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "nuxt typecheck",
+    "wasm:build": "wasm-pack build wasm/apng-encoder --target bundler --release --out-dir pkg",
+    "wasm:dev": "wasm-pack build wasm/apng-encoder --target bundler --out-dir pkg"
+  },
+  "dependencies": {
+    "@pinia/nuxt": "^0.11.0",
+    "@vueuse/core": "^13.0.0",
+    "@vueuse/nuxt": "^13.0.0",
+    "gifenc": "^1.0.3",
+    "grapheme-splitter": "^1.0.4",
+    "nuxt": "^4.4.5",
+    "pinia": "^3.0.0",
+    "upng-js": "^2.1.0",
+    "vue": "latest",
+    "vue-router": "latest"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^1.0.0",
+    "@tailwindcss/postcss": "^4.3.0",
+    "@vue/test-utils": "^2.4.6",
+    "autoprefixer": "^10.4.20",
+    "happy-dom": "^15.0.0",
+    "postcss": "^8.4.45",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^5.6.0",
+    "vite-plugin-top-level-await": "^1.4.4",
+    "vite-plugin-wasm": "^3.3.0",
+    "vitest": "^2.1.0",
+    "vue-tsc": "^2.1.0"
+  }
+}

@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+/* Tailwind v4 is CSS-first: theme tokens live here, there is no tailwind.config.js.
+   These tokens drive the editor chrome (custom components, no DaisyUI). */
+@theme {
+  --color-app-bg: #0f1115;
+  --color-app-panel: #171a21;
+  --color-app-panel-2: #1f232c;
+  --color-app-border: #2a2f3a;
+  --color-app-text: #e7e9ee;
+  --color-app-muted: #9aa1ad;
+  --color-app-accent: #6ea8fe;
+  --color-app-accent-strong: #4f8cff;
+  --color-app-warn: #f0b25b;
+  --color-app-danger: #f06a6a;
+
+  --radius-app: 0.625rem;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#__nuxt {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-app-bg);
+  color: var(--color-app-text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Hiragino Sans", "Noto Sans JP", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Cross-browser range slider styling — the default accent-color rendering is
+   inconsistent and looked broken in this dark theme. Shared by AppSlider and
+   the playback scrubber via the .app-range class. */
+.app-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 18px;
+  background: transparent;
+  cursor: pointer;
+  margin: 0;
+}
+.app-range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--color-app-border);
+}
+.app-range::-moz-range-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--color-app-border);
+}
+.app-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -5px;
+  border-radius: 9999px;
+  background: var(--color-app-accent-strong);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+.app-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: var(--color-app-accent-strong);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+.app-range:focus {
+  outline: none;
+}
+.app-range:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px rgba(110, 168, 254, 0.4);
+}
+.app-range:focus::-moz-range-thumb {
+  box-shadow: 0 0 0 3px rgba(110, 168, 254, 0.4);
+}
+
+/* Transparent-checkerboard backdrop used by the preview stage. */
+.checkerboard {
+  background-image:
+    linear-gradient(45deg, #3a3f4a 25%, transparent 25%),
+    linear-gradient(-45deg, #3a3f4a 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #3a3f4a 75%),
+    linear-gradient(-45deg, transparent 75%, #3a3f4a 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  background-color: #2b3038;
+}

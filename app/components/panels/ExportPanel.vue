@@ -1,0 +1,127 @@
+<script setup lang="ts">
+import { storeToRefs } from 'pinia'
+import { useProjectStore } from '~/stores/project'
+import { useExportStore } from '~/stores/export'
+import { useEditorStore } from '~/stores/editor'
+import { useExport } from '~/composables/useExport'
+import { useApngBackend } from '~/composables/useApngBackend'
+import PanelSection from '~/components/controls/PanelSection.vue'
+import SegmentedControl from '~/components/controls/SegmentedControl.vue'
+import WarningList from '~/components/warnings/WarningList.vue'
+import ExportPresetSelect from '~/components/presets/ExportPresetSelect.vue'
+import type { ExportFormat, OptimizeFor } from '#core/project/schema'
+
+const store = useProjectStore()
+const exportStore = useExportStore()
+const editor = useEditorStore()
+const { project } = storeToRefs(store)
+const { apngEngine } = storeToRefs(editor)
+const { start, cancel } = useExport()
+const { setEngine } = useApngBackend()
+
+async function chooseEngine(e: 'upng' | 'wasm') {
+  const ok = await setEngine(e)
+  editor.setApngEngine(ok ? e : 'upng')
+}
+
+const formats: { value: ExportFormat; label: string }[] = [
+  { value: 'png', label: 'PNG' },
+  { value: 'apng', label: 'APNG' },
+  { value: 'gif', label: 'GIF' },
+]
+const engines: { value: 'upng' | 'wasm'; label: string }[] = [
+  { value: 'upng', label: 'upng-js' },
+  { value: 'wasm', label: 'Rust WASM' },
+]
+const optimize: { value: OptimizeFor; label: string }[] = [
+  { value: 'quality', label: 'Quality' },
+  { value: 'balanced', label: 'Balanced' },
+  { value: 'size', label: 'Size' },
+]
+const sizes = [
+  { w: 128, h: 128, label: '128' },
+  { w: 256, h: 256, label: '256' },
+]
+</script>
+
+<template>
+  <div>
+    <PanelSection title="Misskey Presets">
+      <ExportPresetSelect />
+    </PanelSection>
+
+    <PanelSection title="Export">
+      <SegmentedControl
+        :model-value="project.export.format"
+        :options="formats"
+        label="Format"
+        @update:model-value="store.setExportFormat($event)"
+      />
+      <div>
+        <div class="mb-1 text-xs text-app-muted">Size</div>
+        <div class="flex gap-1">
+          <button
+            v-for="s in sizes"
+            :key="s.label"
+            type="button"
+            class="flex-1 rounded-app border px-2 py-1 text-xs transition-colors"
+            :class="
+              project.export.finalWidth === s.w
+                ? 'border-app-accent bg-app-panel-2'
+                : 'border-app-border hover:border-app-accent'
+            "
+            @click="store.setFinalSize(s.w, s.h)"
+          >
+            {{ s.label }}×{{ s.label }}
+          </button>
+        </div>
+      </div>
+      <SegmentedControl
+        :model-value="project.export.optimizeFor"
+        :options="optimize"
+        label="Optimize for"
+        @update:model-value="store.setOptimizeFor($event)"
+      />
+      <SegmentedControl
+        v-if="project.export.format === 'apng'"
+        :model-value="apngEngine"
+        :options="engines"
+        label="APNG engine"
+        @update:model-value="chooseEngine($event)"
+      />
+    </PanelSection>
+
+    <PanelSection title="Download">
+      <button
+        v-if="!exportStore.isBusy"
+        type="button"
+        class="w-full rounded-app bg-app-accent-strong px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+        @click="start()"
+      >
+        Download {{ project.export.format.toUpperCase() }}
+      </button>
+      <div v-else class="space-y-2">
+        <div class="h-2 w-full overflow-hidden rounded-full bg-app-panel-2">
+          <div
+            class="h-full bg-app-accent-strong transition-all"
+            :style="{ width: Math.round(exportStore.progress * 100) + '%' }"
+          />
+        </div>
+        <button
+          type="button"
+          class="w-full rounded-app border border-app-border px-3 py-2 text-xs text-app-muted hover:text-app-text"
+          @click="cancel()"
+        >
+          Cancel ({{ exportStore.status }})
+        </button>
+      </div>
+
+      <p v-if="exportStore.lastResult" class="text-xs text-app-muted">
+        Last export: {{ exportStore.lastResult.format.toUpperCase() }} ·
+        {{ Math.round(exportStore.lastResult.bytes / 1024) }}KB
+      </p>
+
+      <WarningList :warnings="exportStore.warnings" />
+    </PanelSection>
+  </div>
+</template>

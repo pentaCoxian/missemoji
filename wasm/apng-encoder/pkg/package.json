@@ -1,0 +1,19 @@
+{
+  "name": "apng-encoder",
+  "type": "module",
+  "description": "Browser WASM APNG encoder with changed-region delta optimization for missemoji",
+  "version": "0.1.0",
+  "license": "MIT",
+  "files": [
+    "apng_encoder_bg.wasm",
+    "apng_encoder.js",
+    "apng_encoder_bg.js",
+    "apng_encoder.d.ts"
+  ],
+  "main": "apng_encoder.js",
+  "types": "apng_encoder.d.ts",
+  "sideEffects": [
+    "./apng_encoder.js",
+    "./snippets/*"
+  ]
+}
