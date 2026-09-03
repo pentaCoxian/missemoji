@@ -12,15 +12,40 @@ import { smoothLoopEnvelope, smoothLoopOsc, breathe } from './easing'
  * default amplitudes/speeds are gentle/slow for a calm feel — the user can dial
  * them up via params.
  *
+ * Length-like params (amount, height) are FRACTIONS of the final emoji size;
+ * the renderer multiplies by the canvas dimensions.
+ *
  * `overshoot` (fraction of emoji size) tells the safe-box solver how much extra
  * room to reserve so motion never clips.
  */
+
+/** A user-tunable preset parameter, with the UI metadata to edit it. */
+export interface ParamDef {
+  key: string
+  label: string
+  min: number
+  max: number
+  step: number
+  default: number
+  /** display suffix, e.g. '°' */
+  unit?: string
+  /** round to an integer when sampling (e.g. an oscillation count) */
+  integer?: boolean
+}
+
 export interface AnimationPreset {
   id: string
   label: string
   overshoot: number
-  defaultParams: Record<string, number>
+  params: ParamDef[]
   sample: (progress: number, params: Record<string, number>) => FrameState
+}
+
+/** The default parameter values of a preset, keyed by param key. */
+export function presetDefaults(preset: AnimationPreset): Record<string, number> {
+  const out: Record<string, number> = {}
+  for (const def of preset.params) out[def.key] = def.default
+  return out
 }
 
 function frame(
@@ -42,13 +67,22 @@ function frame(
 
 const p = (params: Record<string, number>, k: string, d: number) => params[k] ?? d
 
+const amount = (def: number, min: number, max: number): ParamDef => ({
+  key: 'amount',
+  label: 'Amount',
+  min,
+  max,
+  step: 0.01,
+  default: def,
+})
+
 export const PRESETS: AnimationPreset[] = [
   {
     id: 'pulse',
     label: 'Pulse',
     overshoot: 0.08,
     // gentler, slower breathing
-    defaultParams: { amount: 0.06 },
+    params: [amount(0.06, 0.01, 0.3)],
     sample: (t, params) => {
       const a = p(params, 'amount', 0.06)
       // breathe(): smooth 0→1→0 with eased dwell at rest — calm, seamless loop
@@ -60,7 +94,7 @@ export const PRESETS: AnimationPreset[] = [
     id: 'bounce',
     label: 'Bounce',
     overshoot: 0.16,
-    defaultParams: { height: 0.12 },
+    params: [{ key: 'height', label: 'Height', min: 0.02, max: 0.35, step: 0.01, default: 0.12 }],
     sample: (t, params) => {
       const h = p(params, 'height', 0.12)
       // single smooth up-and-down per loop using the C¹ envelope (no velocity
@@ -76,7 +110,7 @@ export const PRESETS: AnimationPreset[] = [
     id: 'pop',
     label: 'Pop',
     overshoot: 0.16,
-    defaultParams: { amount: 0.12 },
+    params: [amount(0.12, 0.02, 0.4)],
     sample: (t, params) => {
       const a = p(params, 'amount', 0.12)
       // a single smooth swell that returns to rest — loop-safe (no elastic snap)
@@ -88,7 +122,18 @@ export const PRESETS: AnimationPreset[] = [
     id: 'wiggle',
     label: 'Wiggle',
     overshoot: 0.1,
-    defaultParams: { degrees: 6 },
+    params: [
+      {
+        key: 'degrees',
+        label: 'Angle',
+        min: 1,
+        max: 30,
+        step: 1,
+        default: 6,
+        unit: '°',
+        integer: true,
+      },
+    ],
     sample: (t, params) => {
       const deg = p(params, 'degrees', 6)
       // smooth oscillation; one full cycle returns to 0 with matched slope
@@ -100,8 +145,10 @@ export const PRESETS: AnimationPreset[] = [
     id: 'shake',
     label: 'Shake',
     overshoot: 0.12,
-    // slower, gentler than before (freq 3, smaller amount)
-    defaultParams: { amount: 0.05, freq: 3 },
+    params: [
+      amount(0.05, 0.01, 0.15),
+      { key: 'freq', label: 'Speed', min: 1, max: 8, step: 1, default: 3, integer: true },
+    ],
     sample: (t, params) => {
       const a = p(params, 'amount', 0.05)
       const f = Math.max(1, Math.round(p(params, 'freq', 3)))
@@ -114,7 +161,7 @@ export const PRESETS: AnimationPreset[] = [
     id: 'float',
     label: 'Float',
     overshoot: 0.1,
-    defaultParams: { amount: 0.06 },
+    params: [amount(0.06, 0.01, 0.15)],
     sample: (t, params) => {
       const a = p(params, 'amount', 0.06)
       // gentle drift; both axes are full smooth cycles so they loop seamlessly
@@ -127,7 +174,7 @@ export const PRESETS: AnimationPreset[] = [
     id: 'wave',
     label: 'Wave',
     overshoot: 0.12,
-    defaultParams: { amount: 0.1 },
+    params: [amount(0.1, 0.02, 0.25)],
     sample: (t, params) => {
       const a = p(params, 'amount', 0.1)
       // per-character vertical wave; each char is a full smooth cycle (phase
@@ -143,7 +190,10 @@ export const PRESETS: AnimationPreset[] = [
     id: 'glow-pulse',
     label: 'Glow Pulse',
     overshoot: 0.04,
-    defaultParams: { min: 0.5, max: 1.3 },
+    params: [
+      { key: 'min', label: 'Min glow', min: 0, max: 2, step: 0.05, default: 0.5 },
+      { key: 'max', label: 'Max glow', min: 0, max: 2, step: 0.05, default: 1.3 },
+    ],
     sample: (t, params) => {
       const min = p(params, 'min', 0.5)
       const max = p(params, 'max', 1.3)

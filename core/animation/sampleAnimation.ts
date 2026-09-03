@@ -1,7 +1,26 @@
 import type { AnimationSpec } from '../project/schema'
 import type { FrameState } from './model'
 import { IDENTITY_FRAME } from './model'
-import { getPreset } from './presets'
+import { getPreset, presetDefaults, type AnimationPreset } from './presets'
+
+/**
+ * Resolve the effective numeric params for a preset: user overrides (clamped
+ * to the ParamDef range, rounded when `integer`) on top of the defaults.
+ */
+export function resolveParams(
+  preset: AnimationPreset,
+  overrides: AnimationSpec['params'],
+): Record<string, number> {
+  const params = presetDefaults(preset)
+  for (const def of preset.params) {
+    const v = overrides[def.key]
+    if (typeof v !== 'number' || !Number.isFinite(v)) continue
+    let clamped = Math.min(def.max, Math.max(def.min, v))
+    if (def.integer) clamped = Math.round(clamped)
+    params[def.key] = clamped
+  }
+  return params
+}
 
 /**
  * Sample the FrameState for a given progress (0..1) from the project's active
@@ -12,12 +31,5 @@ export function sampleFrameState(anim: AnimationSpec, progress: number): FrameSt
   if (!anim.enabled) return IDENTITY_FRAME
   const preset = getPreset(anim.preset)
   if (!preset) return IDENTITY_FRAME
-
-  // Merge preset defaults with user params (numeric only).
-  const params: Record<string, number> = { ...preset.defaultParams }
-  for (const [k, v] of Object.entries(anim.params)) {
-    if (typeof v === 'number') params[k] = v
-  }
-
-  return preset.sample(progress, params)
+  return preset.sample(progress, resolveParams(preset, anim.params))
 }
