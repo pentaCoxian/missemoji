@@ -2,6 +2,7 @@ import type { EmojiEncoder, EncodeOptions, EncodedResult } from './types'
 import type { RenderFrame } from '../types'
 import { getApngBackend } from './apng/backend'
 import { optimizeFrames } from './optimizeFrames'
+import { patchApngLoop } from './apng/patchLoop'
 
 /**
  * APNG encoder (spec §12). Runs the encoder-agnostic optimize pass (dedup +
@@ -24,12 +25,14 @@ export const apngEncoder: EmojiEncoder = {
     // 'size' optimize mode enables palette quantization for smaller files.
     const quantizeColors = opts.optimizeFor === 'size' ? 256 : 0
 
-    const data = await getApngBackend().encode(renderFrames, {
+    const encoded = await getApngBackend().encode(renderFrames, {
       width: opts.width,
       height: opts.height,
       loop: opts.loop,
       quantizeColors,
     })
+    // Backends differ in loop support (upng-js has none); normalise here.
+    const data = patchApngLoop(encoded, opts.loop)
     opts.onProgress?.(1)
 
     return { format: 'apng', data, bytes: data.byteLength, mime: 'image/apng' }

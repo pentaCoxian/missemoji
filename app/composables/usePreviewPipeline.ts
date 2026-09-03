@@ -110,11 +110,16 @@ export function usePreviewPipeline(canvasRef: Ref<HTMLCanvasElement | null>) {
 
       if (accumMs >= frameDelay) {
         // step as many frames as elapsed (handles slow tabs without speeding up)
-        let steps = Math.floor(accumMs / frameDelay)
+        const steps = Math.floor(accumMs / frameDelay)
         accumMs -= steps * frameDelay
-        let next = cur
-        while (steps-- > 0) {
-          next = (next + 1) % Math.max(1, editor.playback.frameCount)
+        const count = Math.max(1, editor.playback.frameCount)
+        let next = cur + steps
+        if (project.value.animation.loop) {
+          next %= count
+        } else if (next >= count) {
+          // play once: park on the last frame
+          next = count - 1
+          editor.setPlaying(false)
         }
         editor.setCurrentFrame(next)
         renderToCanvas()
@@ -146,6 +151,20 @@ export function usePreviewPipeline(canvasRef: Ref<HTMLCanvasElement | null>) {
       if (flags.layout || flags.render || flags.frames) renderToCanvas()
     },
     { deep: true },
+  )
+
+  // Pressing play while parked on the last frame (loop off) restarts the run.
+  watch(
+    () => editor.playback.playing,
+    (playing) => {
+      if (
+        playing &&
+        !project.value.animation.loop &&
+        editor.playback.currentFrame >= editor.playback.frameCount - 1
+      ) {
+        editor.setCurrentFrame(0)
+      }
+    },
   )
 
   // Redraw when the user scrubs frames while paused.
