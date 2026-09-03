@@ -1,5 +1,6 @@
 import type { FontDescriptor } from './catalog'
-import { buildCss2Url } from './googleFontsCss'
+import { buildCss2Url, parseFontFaces } from './googleFontsCss'
+import type { FontFaceSource } from './fontSource'
 
 /**
  * Load a Google font family so canvas `measureText`/`fillText` can render it
@@ -18,6 +19,17 @@ import { buildCss2Url } from './googleFontsCss'
 const inflight = new Map<string, Promise<number[]>>()
 const done = new Set<string>()
 const injectedLinks = new Set<string>()
+/** Parsed @font-face sources per family (proxy path only), for the render worker. */
+const sourcesByFamily = new Map<string, FontFaceSource[]>()
+
+/**
+ * The face sources recorded when `family` was loaded through the proxy path,
+ * or null when it was loaded via the `<link>` fallback (no CSS to parse) or
+ * not loaded at all. Workers cannot fetch the Google CSS themselves.
+ */
+export function getFontFaceSources(family: string): FontFaceSource[] | null {
+  return sourcesByFamily.get(family) ?? null
+}
 
 function cacheKey(descriptor: FontDescriptor, weights: number[]) {
   return `${descriptor.family}|${weights.join(',')}`
@@ -91,6 +103,16 @@ export async function loadGoogleFont(
     }
 
     const faces = parseFontFaces(css)
+    sourcesByFamily.set(
+      descriptor.family,
+      faces.map((f) => ({
+        family: descriptor.family,
+        weight: f.weight,
+        style: f.style,
+        unicodeRange: f.unicodeRange,
+        url: f.src,
+      })),
+    )
     const loaded = new Set<number>()
 
     await Promise.all(
@@ -102,8 +124,9 @@ export async function loadGoogleFont(
             display: 'swap',
             unicodeRange: face.unicodeRange,
           })
-          await ff.load()
+          // add before load: Safari matches faces more reliably that way
           ;(document.fonts as FontFaceSet).add(ff)
+          await ff.load()
           loaded.add(face.weight)
         } catch {
           // a subset/weight may fail to load; others can still succeed
@@ -122,33 +145,4 @@ export async function loadGoogleFont(
   } finally {
     inflight.delete(key)
   }
-}
-
-interface ParsedFace {
-  weight: number
-  style: 'normal' | 'italic'
-  src: string
-  unicodeRange?: string
-}
-
-/**
- * Parse @font-face blocks from Google CSS2 output: weight, style, the first
- * woff2 url() in src, and the unicode-range (JP fonts ship many subset blocks).
- */
-function parseFontFaces(css: string): ParsedFace[] {
-  const faces: ParsedFace[] = []
-  const blockRe = /@font-face\s*{([^}]*)}/g
-  let m: RegExpExecArray | null
-  while ((m = blockRe.exec(css))) {
-    const body = m[1]!
-    const weight = Number(/font-weight:\s*(\d+)/.exec(body)?.[1] ?? '400')
-    const style = /font-style:\s*italic/.test(body) ? ('italic' as const) : ('normal' as const)
-    // Prefer a woff2 url; fall back to the first url().
-    const src =
-      /url\(([^)]+\.woff2[^)]*)\)/.exec(body)?.[1]?.replace(/['"]/g, '') ??
-      /url\(([^)]+)\)/.exec(body)?.[1]?.replace(/['"]/g, '')
-    const unicodeRange = /unicode-range:\s*([^;]+);/.exec(body)?.[1]?.trim()
-    if (src) faces.push({ weight, style, src, unicodeRange })
-  }
-  return faces
 }
