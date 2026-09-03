@@ -1,7 +1,15 @@
-import { ref, shallowRef, watch, onScopeDispose } from 'vue'
+import { watch, onScopeDispose, type Ref } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useDebounceFn } from '@vueuse/core'
 import { useProjectStore } from '~/stores/project'
 import { useEditorStore } from '~/stores/editor'
+import { useExportStore } from '~/stores/export'
+import { useFontLoading } from '~/composables/useFontLoading'
+import { usePreviewFrames } from '~/composables/usePreviewFrames'
+import { resolveRenderClient, noteRenderWorkerCrash } from '~/composables/useRenderWorker'
+import type { RenderJob } from '~/composables/renderClient'
+import { collectFontFaces } from '~/utils/fontFaces'
+import { WorkerCrashedError } from '~/utils/workerRpc'
 import { classifyChange } from '#core/project/dirty'
 import { solveLayout } from '#core/layout/solve'
 import { renderProjectFrame } from '#core/render/renderProject'
@@ -9,175 +17,269 @@ import { createSurface } from '#core/render/renderContext'
 import { sampleFrameState } from '#core/animation/sampleAnimation'
 import { buildFramePlan } from '#core/animation/frames'
 import { computeOvershoot } from '#core/animation/overshoot'
-import { buildWarnings } from '#core/export/sizeEstimate'
+import { buildWarnings, estimateBytesFromStats } from '#core/export/sizeEstimate'
 import { findMissingGlyphs } from '#core/fonts/glyphCheck'
 import { segmentGraphemes } from '#core/text/segmentGraphemes'
-import type { LayoutResult } from '#core/layout/types'
+import {
+  advancePlayhead,
+  createGenerationGate,
+  installFrameSet,
+  type FrameSet,
+  type PlayheadState,
+} from '#core/preview/playback'
+import type { FrameStats } from '#core/types'
 import type { EmojiProject } from '#core/project/schema'
-import { useFontLoading } from '~/composables/useFontLoading'
-import { useExportStore } from '~/stores/export'
 
 /**
- * The reactive preview pipeline (spec §18). Watches the project, classifies
- * each change, and re-runs only the needed stages (layout / render). Renders
- * the current frame onto a provided visible canvas. Animation playback advances
- * frames via rAF without re-laying-out.
+ * The reactive preview pipeline (spec §18).
+ *
+ * Layout is solved on the main thread (cheap; fonts live in document.fonts).
+ * Frames are rendered by the render client — normally the worker, through the
+ * SAME frame sequence export uses — into a cache of ImageBitmaps; playback is
+ * then one drawImage per tick. Requests are debounced and carry a generation
+ * so results of superseded edits are dropped (stale-while-revalidate: the old
+ * set keeps playing until the new one is complete). Only the very first paint
+ * renders frame 0 synchronously on the main thread.
  */
 export function usePreviewPipeline(canvasRef: Ref<HTMLCanvasElement | null>) {
   const projectStore = useProjectStore()
   const editor = useEditorStore()
   const exportStore = useExportStore()
   const { project } = storeToRefs(projectStore)
+  const pf = usePreviewFrames()
 
-  // Non-reactive caches.
   const measureSurface = createSurface(64, 64)
-  const layout = shallowRef<LayoutResult | null>(null)
-  let prevSnapshot: EmojiProject = JSON.parse(JSON.stringify(project.value))
-  let rafId = 0
+  const gate = createGenerationGate()
+  let prevSnapshot: EmojiProject = projectStore.serialize()
+  let activeJob: RenderJob | null = null
+  let missingGlyphs: string[] = []
 
-  const isReady = ref(false)
-
-  // Font loading re-runs layout when the selected font finishes loading.
   const { ensure: ensureFont } = useFontLoading(() => {
     solve()
-    renderToCanvas()
+    requestSet()
   })
 
+  // ---- layout ----------------------------------------------------------
+
   function solve() {
-    editor.setPreviewStatus('laying-out')
+    pf.status.value = 'solving'
     const p = project.value
-    // Reserve safe-box room for the animation's measured reach so motion never clips.
-    layout.value = solveLayout(measureSurface.ctx, p, computeOvershoot(p))
-    // keep frame count in sync for playback
+    pf.layout.value = solveLayout(measureSurface.ctx, p, computeOvershoot(p))
     const plan = buildFramePlan(p.animation)
     editor.setFrameCount(plan.length)
-
-    // Live readability/size warnings (estimate only; refined on export).
-    const missing = findMissingGlyphs(measureSurface.ctx, p.font, segmentGraphemes(p.text))
-    exportStore.setWarnings(buildWarnings(p, layout.value, plan.length, undefined, missing))
+    missingGlyphs = findMissingGlyphs(measureSurface.ctx, p.font, segmentGraphemes(p.text))
+    exportStore.setWarnings(
+      buildWarnings(p, pf.layout.value, plan.length, undefined, missingGlyphs),
+    )
   }
 
-  function renderToCanvas() {
+  // ---- drawing ---------------------------------------------------------
+
+  function drawBitmap(bmp: ImageBitmap) {
     const canvas = canvasRef.value
-    if (!canvas || !layout.value) return
-    editor.setPreviewStatus('rendering')
+    if (!canvas) return
+    if (canvas.width !== bmp.width || canvas.height !== bmp.height) {
+      canvas.width = bmp.width
+      canvas.height = bmp.height
+    }
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.drawImage(bmp, 0, 0)
+    pf.currentBitmap.value = bmp
+  }
 
+  function drawFrameIndex(i: number) {
+    const set = pf.frames.value
+    if (!set || set.bitmaps.length === 0) return
+    const bmp = set.bitmaps[Math.min(Math.max(0, i), set.bitmaps.length - 1)]
+    if (bmp) drawBitmap(bmp)
+  }
+
+  /** Synchronous first paint so the stage is never blank while the worker boots. */
+  function coldStart() {
+    const canvas = canvasRef.value
+    const layout = pf.layout.value
+    if (!canvas || !layout) return
     const p = project.value
-    const frameState = p.animation.enabled ? sampleCurrent(p) : undefined
-
     const frame = renderProjectFrame(p, {
-      layout: layout.value,
-      frame: frameState,
+      layout,
+      frame: p.animation.enabled ? sampleFrameState(p.animation, 0) : undefined,
     })
-
-    // Blit the RGBA frame onto the visible canvas at final size.
     canvas.width = frame.width
     canvas.height = frame.height
-    const ctx = canvas.getContext('2d')!
     const img = new ImageData(frame.rgba, frame.width, frame.height)
-    ctx.putImageData(img, 0, 0)
-
-    // Publish a data URL for the actual-size preview strip (cheap at <=256px).
-    editor.setPreviewDataUrl(canvas.toDataURL('image/png'))
-
-    editor.setPreviewStatus('ready')
-    isReady.value = true
+    canvas.getContext('2d')?.putImageData(img, 0, 0)
+    void createImageBitmap(img).then((bmp) => {
+      if (!pf.frames.value) pf.currentBitmap.value = bmp
+      else bmp.close()
+    })
   }
 
-  function sampleCurrent(p: EmojiProject) {
-    const plan = buildFramePlan(p.animation)
-    const idx = Math.min(editor.playback.currentFrame, plan.length - 1)
-    const progress = plan[idx]?.progress ?? 0
-    return sampleFrameState(p.animation, progress)
-  }
+  // ---- frame set requests ---------------------------------------------
 
-  // Animation playback loop. Advance frames on a TIME basis (respecting each
-  // frame's delayMs) rather than once per rAF — otherwise a 12-frame loop plays
-  // in ~0.2s on a 60Hz display (the "too fast / jittery" bug) instead of the
-  // intended duration. This also makes the preview speed match the exported
-  // file and stay identical at 128 and 256.
-  let lastTs = 0
-  let accumMs = 0
-  function tick(ts: number) {
-    if (project.value.animation.enabled && editor.playback.playing) {
-      if (lastTs === 0) lastTs = ts
-      accumMs += ts - lastTs
-      lastTs = ts
+  async function doRequestSet() {
+    const layout = pf.layout.value
+    if (!layout) return
+    const p = projectStore.serialize()
+    const gen = gate.next()
+    activeJob?.cancel()
+    activeJob = null
 
-      const plan = buildFramePlan(project.value.animation)
-      const cur = Math.min(editor.playback.currentFrame, plan.length - 1)
-      const frameDelay = plan[cur]?.delayMs ?? 1000 / 12
+    const { faces, needsFaces, hasFaces } = collectFontFaces(p)
+    const client = await resolveRenderClient(needsFaces, hasFaces)
+    if (!gate.isCurrent(gen)) return
+    pf.renderer.value = client.kind
+    pf.status.value = 'rendering'
 
-      if (accumMs >= frameDelay) {
-        // step as many frames as elapsed (handles slow tabs without speeding up)
-        const steps = Math.floor(accumMs / frameDelay)
-        accumMs -= steps * frameDelay
-        const count = Math.max(1, editor.playback.frameCount)
-        let next = cur + steps
-        if (project.value.animation.loop) {
-          next %= count
-        } else if (next >= count) {
-          // play once: park on the last frame
-          next = count - 1
-          editor.setPlaying(false)
-        }
-        editor.setCurrentFrame(next)
-        renderToCanvas()
+    const bitmaps: ImageBitmap[] = []
+    const delays: number[] = []
+    const stats: FrameStats[] = []
+    const job = client.render(
+      { project: p, layout, faces, output: 'bitmap' },
+      {
+        onBitmap(index, _total, bmp, delayMs, st) {
+          if (!gate.isCurrent(gen)) {
+            bmp.close()
+            return
+          }
+          bitmaps[index] = bmp
+          delays[index] = delayMs
+          stats[index] = st
+          // nothing cached yet: show the first frame as soon as it exists
+          if (!pf.frames.value && index === 0) drawBitmap(bmp)
+        },
+      },
+    )
+    activeJob = job
+    try {
+      await job.done
+      if (!gate.isCurrent(gen)) {
+        for (const b of bitmaps) b?.close()
+        return
       }
-    } else {
-      lastTs = ts
-      accumMs = 0
+      const set: FrameSet = {
+        generation: gen,
+        bitmaps,
+        delays,
+        width: p.export.finalWidth,
+        height: p.export.finalHeight,
+        stats,
+      }
+      pf.frames.value = installFrameSet(pf.frames.value, set)
+      editor.setFrameCount(bitmaps.length)
+      exportStore.setWarnings(
+        buildWarnings(p, layout, bitmaps.length, estimateBytesFromStats(p, stats), missingGlyphs),
+      )
+      pf.status.value = 'ready'
+      pf.error.value = null
+      if (!editor.playback.playing || bitmaps.length <= 1) {
+        drawFrameIndex(editor.playback.currentFrame)
+      }
+    } catch (err) {
+      for (const b of bitmaps) b?.close()
+      const message = (err as Error).message
+      if (message === 'cancelled' || !gate.isCurrent(gen)) return
+      if (err instanceof WorkerCrashedError) noteRenderWorkerCrash()
+      pf.status.value = 'error'
+      pf.error.value = message
+    } finally {
+      if (activeJob === job) activeJob = null
+    }
+  }
+
+  const requestSet = useDebounceFn(() => void doRequestSet(), 60)
+
+  // ---- playback --------------------------------------------------------
+
+  let rafId = 0
+  let lastTs = 0
+  let head: PlayheadState = { index: 0, accumMs: 0 }
+
+  function tick(ts: number) {
+    rafId = 0
+    const set = pf.frames.value
+    if (!set || set.bitmaps.length <= 1 || !editor.playback.playing) return
+    const elapsed = ts - lastTs
+    lastTs = ts
+    const step = advancePlayhead(head, elapsed, set.delays, project.value.animation.loop)
+    head = { index: step.index, accumMs: step.accumMs }
+    if (step.index !== editor.playback.currentFrame) {
+      editor.setCurrentFrame(step.index)
+      drawFrameIndex(step.index)
+    }
+    if (step.ended) {
+      editor.setPlaying(false)
+      return
     }
     rafId = requestAnimationFrame(tick)
   }
 
-  // Initial solve + render. Kick off font loading; layout re-runs when ready.
-  function init() {
-    solve()
-    renderToCanvas()
-    void ensureFont()
+  function startLoop() {
+    if (rafId) return
+    lastTs = performance.now()
+    head = { index: editor.playback.currentFrame, accumMs: 0 }
     rafId = requestAnimationFrame(tick)
   }
 
-  // React to project changes with stage-appropriate recompute. The full font
-  // family is loaded once on family change (useFontLoading), so text edits need
-  // no re-fetch — just re-solve/re-render.
+  function stopLoop() {
+    if (rafId) cancelAnimationFrame(rafId)
+    rafId = 0
+  }
+
+  watch(
+    [() => editor.playback.playing, pf.frames],
+    ([playing, set]) => {
+      const animated = !!set && set.bitmaps.length > 1
+      if (playing && animated) {
+        // pressing play while parked on the last frame (loop off) restarts
+        if (
+          !project.value.animation.loop &&
+          editor.playback.currentFrame >= editor.playback.frameCount - 1
+        ) {
+          editor.setCurrentFrame(0)
+          head = { index: 0, accumMs: 0 }
+        }
+        startLoop()
+      } else {
+        stopLoop()
+      }
+    },
+    { immediate: true },
+  )
+
+  // Redraw when the user scrubs while paused.
+  watch(
+    () => editor.playback.currentFrame,
+    (i) => {
+      if (!editor.playback.playing) drawFrameIndex(i)
+    },
+  )
+
+  // ---- project changes -------------------------------------------------
+
   watch(
     project,
     (next) => {
       const flags = classifyChange(prevSnapshot, next)
-      prevSnapshot = JSON.parse(JSON.stringify(next))
+      prevSnapshot = projectStore.serialize()
       if (flags.layout) solve()
-      if (flags.layout || flags.render || flags.frames) renderToCanvas()
+      if (flags.layout || flags.render || flags.frames) requestSet()
     },
     { deep: true },
   )
 
-  // Pressing play while parked on the last frame (loop off) restarts the run.
-  watch(
-    () => editor.playback.playing,
-    (playing) => {
-      if (
-        playing &&
-        !project.value.animation.loop &&
-        editor.playback.currentFrame >= editor.playback.frameCount - 1
-      ) {
-        editor.setCurrentFrame(0)
-      }
-    },
-  )
-
-  // Redraw when the user scrubs frames while paused.
-  watch(
-    () => editor.playback.currentFrame,
-    () => {
-      if (!editor.playback.playing) renderToCanvas()
-    },
-  )
+  function init() {
+    solve()
+    coldStart()
+    requestSet()
+    void ensureFont()
+  }
 
   onScopeDispose(() => {
-    if (rafId) cancelAnimationFrame(rafId)
+    stopLoop()
+    activeJob?.cancel()
   })
 
-  return { init, solve, renderToCanvas, layout, isReady }
+  return { init, solve }
 }

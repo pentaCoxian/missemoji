@@ -7,10 +7,10 @@
  */
 import type { EncodeRequest, EncodeResponse, TransferableFrame } from './protocol'
 import type { RenderFrame } from '#core/types'
+import type { ApngBackend } from '#core/export/types'
 import { getEncoder } from '#core/export/registry'
-import { setApngBackend } from '#core/export/apng/backend'
 import { upngBackend } from '#core/export/apng/upngBackend'
-import { wasmApngBackend } from '#core/export/apng/wasmBackend'
+import { wasmApngBackend, isWasmApngAvailable } from '#core/export/apng/wasmBackend'
 
 const cancelled = new Set<string>()
 
@@ -18,19 +18,17 @@ function post(msg: EncodeResponse, transfer?: Transferable[]) {
   ;(self as DedicatedWorkerGlobalScope).postMessage(msg, transfer ?? [])
 }
 
+const wasmReady = isWasmApngAvailable()
+void wasmReady.then((wasmApng) => post({ type: 'hello', caps: { wasmApng } }))
+
 self.onmessage = async (e: MessageEvent<EncodeRequest>) => {
   const msg = e.data
   if (msg.type === 'cancel') {
     cancelled.add(msg.jobId)
     return
   }
-
   if (msg.type !== 'encode') return
   const { jobId, frames, opts } = msg
-
-  // Select the APNG backend for this job (decision §5: swappable).
-  if (opts.apngBackend === 'wasm') setApngBackend(wasmApngBackend)
-  else setApngBackend(upngBackend)
 
   try {
     const renderFrames: RenderFrame[] = frames.map((f: TransferableFrame) => ({
@@ -41,29 +39,38 @@ self.onmessage = async (e: MessageEvent<EncodeRequest>) => {
     }))
 
     const encoder = getEncoder(opts.format)
-    const result = await encoder.encode(renderFrames, {
-      width: opts.width,
-      height: opts.height,
-      loop: opts.loop,
-      optimizeFor: opts.optimizeFor,
-      shouldCancel: () => cancelled.has(jobId),
-      onProgress: (p) =>
-        post({
-          type: 'progress',
-          jobId,
-          stage: 'encode',
-          done: Math.round(p * 100),
-          total: 100,
-        }),
-    })
+    const shouldCancel = () => cancelled.has(jobId)
+    const onProgress = (p: number) =>
+      post({ type: 'progress', jobId, stage: 'encode', done: Math.round(p * 100), total: 100 })
+
+    // APNG backend choice; the wasm build may be missing or fail to load, in
+    // which case upng-js (pure JS) takes over transparently.
+    const wantWasm = opts.format === 'apng' && opts.apngBackend === 'wasm' && (await wasmReady)
+    let backend: ApngBackend = wantWasm ? wasmApngBackend : upngBackend
+    const encode = () =>
+      encoder.encode(renderFrames, {
+        width: opts.width,
+        height: opts.height,
+        loop: opts.loop,
+        optimizeFor: opts.optimizeFor,
+        apngBackend: backend,
+        shouldCancel,
+        onProgress,
+      })
+    let result
+    try {
+      result = await encode()
+    } catch (err) {
+      if (shouldCancel() || backend === upngBackend) throw err
+      backend = upngBackend
+      result = await encode()
+    }
 
     if (cancelled.has(jobId)) {
       post({ type: 'cancelled', jobId })
-      cancelled.delete(jobId)
       return
     }
 
-    // Transfer the encoded bytes back to the main thread.
     const data = result.data.buffer.slice(
       result.data.byteOffset,
       result.data.byteOffset + result.data.byteLength,
@@ -76,15 +83,15 @@ self.onmessage = async (e: MessageEvent<EncodeRequest>) => {
         bytes: result.bytes,
         mime: result.mime,
         data,
+        backendUsed: opts.format === 'apng' ? backend.id : result.format,
+        framesEncoded: result.framesEncoded ?? renderFrames.length,
       },
       [data],
     )
   } catch (err) {
-    if (cancelled.has(jobId)) {
-      post({ type: 'cancelled', jobId })
-      cancelled.delete(jobId)
-    } else {
-      post({ type: 'error', jobId, message: (err as Error).message })
-    }
+    if (cancelled.has(jobId)) post({ type: 'cancelled', jobId })
+    else post({ type: 'error', jobId, message: (err as Error).message })
+  } finally {
+    cancelled.delete(jobId)
   }
 }
