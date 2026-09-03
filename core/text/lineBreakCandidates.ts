@@ -84,9 +84,7 @@ function splitIntoLines(clusters: string[], n: number): string[][] {
   }
   lines.push(clusters.slice(start))
   // Drop empty lines and trim leading spaces on wrapped lines.
-  return lines
-    .map((l, i) => (i > 0 ? trimLeadingSpace(l) : l))
-    .filter((l) => l.length > 0)
+  return lines.map((l, i) => (i > 0 ? trimLeadingSpace(l) : l)).filter((l) => l.length > 0)
 }
 
 function trimLeadingSpace(line: string[]): string[] {

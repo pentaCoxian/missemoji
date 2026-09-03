@@ -25,16 +25,10 @@ export interface SafeMargins {
  * preset's declared overshoot (0 for static); passed in so this stays pure and
  * does not depend on the preset registry.
  */
-export function computeSafeMargins(
-  project: EmojiProject,
-  overshootPx = 0,
-): SafeMargins {
+export function computeSafeMargins(project: EmojiProject, overshootPx = 0): SafeMargins {
   const padding = project.layout.padding
 
-  const stroke = project.style.strokes.reduce(
-    (m, s) => Math.max(m, s.width),
-    0,
-  )
+  const stroke = project.style.strokes.reduce((m, s) => Math.max(m, s.width), 0)
 
   const shadow = project.style.shadows.reduce(
     (m, s) => Math.max(m, s.blur + Math.max(Math.abs(s.offsetX), Math.abs(s.offsetY))),

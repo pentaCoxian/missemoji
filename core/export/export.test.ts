@@ -95,7 +95,11 @@ describe('export encoders (headless)', () => {
     // static project -> single frame; duplicate it to test dedup
     const [frame] = renderFrames(p)
     const dup = { ...frame!, rgba: frame!.rgba.slice() }
-    const { frames, duplicatesMerged } = optimizeFrames([frame!, dup, { ...frame!, rgba: frame!.rgba.slice() }])
+    const { frames, duplicatesMerged } = optimizeFrames([
+      frame!,
+      dup,
+      { ...frame!, rgba: frame!.rgba.slice() },
+    ])
     expect(duplicatesMerged).toBe(2)
     expect(frames.length).toBe(1)
     // merged delays
@@ -108,11 +112,7 @@ function findChunk(data: Uint8Array, type: string): boolean {
   const target = type.split('').map((c) => c.charCodeAt(0))
   let pos = 8 // after signature
   while (pos + 8 <= data.length) {
-    const len =
-      (data[pos]! << 24) |
-      (data[pos + 1]! << 16) |
-      (data[pos + 2]! << 8) |
-      data[pos + 3]!
+    const len = (data[pos]! << 24) | (data[pos + 1]! << 16) | (data[pos + 2]! << 8) | data[pos + 3]!
     const t = [data[pos + 4], data[pos + 5], data[pos + 6], data[pos + 7]]
     if (t.every((b, i) => b === target[i])) return true
     pos += 12 + len // length(4) + type(4) + data(len) + crc(4)

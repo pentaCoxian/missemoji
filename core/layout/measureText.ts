@@ -34,14 +34,8 @@ export function measureRun(
   for (const c of clusters) {
     const m = ctx.measureText(c)
     width += m.width + font.letterSpacing
-    const a =
-      m.actualBoundingBoxAscent ||
-      m.fontBoundingBoxAscent ||
-      sizePx * 0.8
-    const d =
-      m.actualBoundingBoxDescent ||
-      m.fontBoundingBoxDescent ||
-      sizePx * 0.2
+    const a = m.actualBoundingBoxAscent || m.fontBoundingBoxAscent || sizePx * 0.8
+    const d = m.actualBoundingBoxDescent || m.fontBoundingBoxDescent || sizePx * 0.2
     if (a > ascent) ascent = a
     if (d > descent) descent = d
   }
@@ -61,14 +55,9 @@ const MAX_ENTRIES = 4000
 
 function key(font: FontSpec, sizePx: number, clusters: string[]): string {
   const bucket = Math.round(sizePx * 2) / 2
-  return [
-    font.family,
-    font.weight,
-    font.style,
-    font.letterSpacing,
-    bucket,
-    clusters.join(''),
-  ].join('|')
+  return [font.family, font.weight, font.style, font.letterSpacing, bucket, clusters.join('')].join(
+    '|',
+  )
 }
 
 export function measureRunCached(

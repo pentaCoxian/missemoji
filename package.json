@@ -12,7 +12,11 @@
     "test:watch": "vitest",
     "typecheck": "nuxt typecheck",
     "wasm:build": "wasm-pack build wasm/apng-encoder --target bundler --release --out-dir pkg",
-    "wasm:dev": "wasm-pack build wasm/apng-encoder --target bundler --out-dir pkg"
+    "wasm:dev": "wasm-pack build wasm/apng-encoder --target bundler --out-dir pkg",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@pinia/nuxt": "^0.11.0",
@@ -29,11 +33,14 @@
   },
   "devDependencies": {
     "@napi-rs/canvas": "^1.0.0",
+    "@nuxt/eslint": "^1.17.0",
     "@tailwindcss/postcss": "^4.3.0",
     "@types/node": "^22.0.0",
     "autoprefixer": "^10.4.20",
+    "eslint": "^9.39.5",
     "happy-dom": "^20.0.0",
     "postcss": "^8.4.45",
+    "prettier": "^3.9.6",
     "tailwindcss": "^4.3.0",
     "typescript": "^5.9.3",
     "vite-plugin-top-level-await": "^1.4.4",

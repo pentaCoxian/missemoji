@@ -1,8 +1,4 @@
-import {
-  createSurface,
-  supportsCanvasFilter,
-  type Ctx2D,
-} from '../render/renderContext'
+import { createSurface, supportsCanvasFilter, type Ctx2D } from '../render/renderContext'
 import type { FontSpec, GlowSpec } from '../project/schema'
 import type { TextPlacement } from '../render/renderTextLayer'
 import { paintPlacedText, withBlockStretch } from '../render/renderTextLayer'
@@ -52,11 +48,7 @@ export function paintGlows(
   }
 }
 
-function compositeGlow(
-  destCtx: Ctx2D,
-  glowCanvas: CanvasImageSource,
-  intensity: number,
-) {
+function compositeGlow(destCtx: Ctx2D, glowCanvas: CanvasImageSource, intensity: number) {
   const prevAlpha = destCtx.globalAlpha
   const prevOp = destCtx.globalCompositeOperation
   destCtx.globalCompositeOperation = 'lighter'

@@ -8,10 +8,7 @@ import { getPreset } from './presets'
  * animation preset (spec §10). Returns identity when animation is disabled or
  * the preset is unknown.
  */
-export function sampleFrameState(
-  anim: AnimationSpec,
-  progress: number,
-): FrameState {
+export function sampleFrameState(anim: AnimationSpec, progress: number): FrameState {
   if (!anim.enabled) return IDENTITY_FRAME
   const preset = getPreset(anim.preset)
   if (!preset) return IDENTITY_FRAME

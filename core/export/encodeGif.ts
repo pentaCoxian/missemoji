@@ -24,11 +24,7 @@ export const gifEncoder: EmojiEncoder = {
     for (let i = 0; i < total; i++) {
       if (opts.shouldCancel?.()) throw new Error('cancelled')
       const f = optimized[i]!.frame
-      const rgba = new Uint8Array(
-        f.rgba.buffer,
-        f.rgba.byteOffset,
-        f.rgba.byteLength,
-      )
+      const rgba = new Uint8Array(f.rgba.buffer, f.rgba.byteOffset, f.rgba.byteLength)
 
       // Build a working copy; force fully-transparent pixels to a key color so
       // quantize keeps a transparent palette index.

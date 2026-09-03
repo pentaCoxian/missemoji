@@ -31,8 +31,7 @@ export function useExport() {
     try {
       const p = JSON.parse(JSON.stringify(project.value)) // structured-clone-safe copy
       const overshootPx = p.animation.enabled
-        ? presetOvershoot(p.animation.preset) *
-          Math.max(p.export.finalWidth, p.export.finalHeight)
+        ? presetOvershoot(p.animation.preset) * Math.max(p.export.finalWidth, p.export.finalHeight)
         : 0
 
       const measure = createSurface(64, 64)

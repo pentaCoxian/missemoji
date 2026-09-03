@@ -36,8 +36,7 @@ export function scoreCandidate(
   // Line imbalance: normalized variance of line widths.
   const widths = fit.lines.map((l) => l.width)
   const mean = widths.reduce((a, b) => a + b, 0) / Math.max(1, widths.length)
-  const variance =
-    widths.reduce((a, b) => a + (b - mean) ** 2, 0) / Math.max(1, widths.length)
+  const variance = widths.reduce((a, b) => a + (b - mean) ** 2, 0) / Math.max(1, widths.length)
   const lineImbalancePenalty = Math.sqrt(variance) / Math.max(1, mean)
 
   const badBreakPenalty = candidate.kinsokuViolations

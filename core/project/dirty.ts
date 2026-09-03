@@ -41,10 +41,7 @@ function changed(a: unknown, b: unknown): boolean {
  * which can change the fitted font size — so when computed safe margins change
  * we escalate to `layout: true`, not just `render`.
  */
-export function classifyChange(
-  prev: EmojiProject,
-  next: EmojiProject,
-): RecomputeFlags {
+export function classifyChange(prev: EmojiProject, next: EmojiProject): RecomputeFlags {
   if (prev === next) return NONE
   let flags = NONE
 

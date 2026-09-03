@@ -33,22 +33,16 @@ function setSolidColor(color: string) {
 function setGradientStop(i: number, color: string) {
   const fill = project.value.style.fill
   if (fill.type !== 'linear-gradient') return
-  const stops = fill.stops.map((s, idx) =>
-    idx === i ? { ...s, color } : s,
-  )
+  const stops = fill.stops.map((s, idx) => (idx === i ? { ...s, color } : s))
   store.setFill({ ...fill, stops })
 }
 
 // Template-safe accessors (Vue's template compiler rejects the TS `!` operator).
 const gradientStops = computed(() =>
-  project.value.style.fill.type === 'linear-gradient'
-    ? project.value.style.fill.stops
-    : [],
+  project.value.style.fill.type === 'linear-gradient' ? project.value.style.fill.stops : [],
 )
 const gradientAngle = computed(() =>
-  project.value.style.fill.type === 'linear-gradient'
-    ? project.value.style.fill.angle
-    : 0,
+  project.value.style.fill.type === 'linear-gradient' ? project.value.style.fill.angle : 0,
 )
 const shadow0 = computed(() => project.value.style.shadows[0] ?? null)
 const glow0 = computed(() => project.value.style.glows[0] ?? null)
@@ -162,7 +156,11 @@ const strokeCounts = [
     </PanelSection>
 
     <PanelSection title="Shadow">
-      <ToggleSwitch :model-value="hasShadow" label="Enable shadow" @update:model-value="toggleShadow" />
+      <ToggleSwitch
+        :model-value="hasShadow"
+        label="Enable shadow"
+        @update:model-value="toggleShadow"
+      />
       <template v-if="shadow0">
         <ColorPicker
           :model-value="shadow0.color"

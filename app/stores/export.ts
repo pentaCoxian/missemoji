@@ -2,13 +2,7 @@ import { defineStore } from 'pinia'
 import type { ExportFormat } from '#core/project/schema'
 
 export type ExportStatus =
-  | 'idle'
-  | 'queued'
-  | 'rendering'
-  | 'encoding'
-  | 'done'
-  | 'error'
-  | 'cancelled'
+  'idle' | 'queued' | 'rendering' | 'encoding' | 'done' | 'error' | 'cancelled'
 
 export interface ExportWarning {
   level: 'info' | 'warn' | 'error'
@@ -34,8 +28,7 @@ export const useExportStore = defineStore('export', {
   }),
 
   getters: {
-    isBusy: (s) =>
-      s.status === 'queued' || s.status === 'rendering' || s.status === 'encoding',
+    isBusy: (s) => s.status === 'queued' || s.status === 'rendering' || s.status === 'encoding',
   },
 
   actions: {

@@ -4,13 +4,7 @@
  * redefining them, and workers receive structured-cloned copies.
  */
 
-export type LayoutMode =
-  | 'fit'
-  | 'fill'
-  | 'safe'
-  | 'compact'
-  | 'jp-balanced'
-  | 'impact'
+export type LayoutMode = 'fit' | 'fill' | 'safe' | 'compact' | 'jp-balanced' | 'impact'
 
 export type Align = 'center' | 'left' | 'right'
 export type VerticalAlign = 'middle' | 'top' | 'bottom'

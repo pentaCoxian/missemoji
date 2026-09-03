@@ -35,10 +35,7 @@ export function readabilityPenalty(
 /**
  * Wrapper used by scoreLayout: takes a LayoutResult and returns the penalty.
  */
-export function readabilityPenaltyForLayout(
-  project: EmojiProject,
-  layout: LayoutResult,
-): number {
+export function readabilityPenaltyForLayout(project: EmojiProject, layout: LayoutResult): number {
   return readabilityPenalty(project, {
     fontSize: layout.fontSize,
     lineCount: layout.lines.length,

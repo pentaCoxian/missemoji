@@ -65,8 +65,7 @@ function boxBlurV(
         dst[y * width * 4 + col + ch] = sum / div
         const addY = Math.min(height - 1, y + r + 1)
         const subY = Math.max(0, y - r)
-        sum +=
-          src[addY * width * 4 + col + ch]! - src[subY * width * 4 + col + ch]!
+        sum += src[addY * width * 4 + col + ch]! - src[subY * width * 4 + col + ch]!
       }
     }
   }

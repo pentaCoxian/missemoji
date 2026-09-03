@@ -1,11 +1,6 @@
 import type { FrameState, LayerTransform, PaintModulators } from './model'
 import { IDENTITY_TRANSFORM, IDENTITY_PAINT } from './model'
-import {
-  smoothLoopEnvelope,
-  smoothLoopOsc,
-  cycleCosine,
-  breathe,
-} from './easing'
+import { smoothLoopEnvelope, smoothLoopOsc, cycleCosine, breathe } from './easing'
 
 /**
  * Animation preset registry (spec §11).
@@ -45,8 +40,7 @@ function frame(
   }
 }
 
-const p = (params: Record<string, number>, k: string, d: number) =>
-  params[k] ?? d
+const p = (params: Record<string, number>, k: string, d: number) => params[k] ?? d
 
 export const PRESETS: AnimationPreset[] = [
   {

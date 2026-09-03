@@ -56,11 +56,7 @@ export function usePreviewPipeline(canvasRef: Ref<HTMLCanvasElement | null>) {
     editor.setFrameCount(plan.length)
 
     // Live readability/size warnings (estimate only; refined on export).
-    const missing = findMissingGlyphs(
-      measureSurface.ctx,
-      p.font,
-      segmentGraphemes(p.text),
-    )
+    const missing = findMissingGlyphs(measureSurface.ctx, p.font, segmentGraphemes(p.text))
     exportStore.setWarnings(buildWarnings(p, layout.value, plan.length, undefined, missing))
   }
 
@@ -70,10 +66,7 @@ export function usePreviewPipeline(canvasRef: Ref<HTMLCanvasElement | null>) {
     editor.setPreviewStatus('rendering')
 
     const p = project.value
-    const frameState =
-      p.animation.enabled
-        ? sampleCurrent(p)
-        : undefined
+    const frameState = p.animation.enabled ? sampleCurrent(p) : undefined
 
     const frame = renderProjectFrame(p, {
       layout: layout.value,

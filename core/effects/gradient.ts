@@ -43,10 +43,7 @@ export function buildLinearGradient(
  * is feathered/smoothed rather than a hard two-color ramp. Interpolation is in
  * sRGB; alpha is interpolated too so semi-transparent stops blend cleanly.
  */
-export function featherStops(
-  stops: GradientStop[],
-  steps: number,
-): GradientStop[] {
+export function featherStops(stops: GradientStop[], steps: number): GradientStop[] {
   if (stops.length < 2 || steps < 1) return stops.slice()
   const sorted = [...stops].sort((a, b) => a.position - b.position)
   const out: GradientStop[] = []

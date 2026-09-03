@@ -1,0 +1,9 @@
+.nuxt
+.output
+dist
+node_modules
+wasm/apng-encoder/pkg
+wasm/apng-encoder/pkg-node
+wasm/apng-encoder/target
+package-lock.json
+*.md

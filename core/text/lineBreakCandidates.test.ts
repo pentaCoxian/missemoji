@@ -28,9 +28,7 @@ describe('generateCandidates', () => {
     p.layout.mode = 'jp-balanced'
     const cands = generateCandidates(p)
     // the best (lowest-violation) candidate should have 0 or minimal violations
-    const minViolations = Math.min(
-      ...cands.map((c) => countKinsokuViolations(c.lines)),
-    )
+    const minViolations = Math.min(...cands.map((c) => countKinsokuViolations(c.lines)))
     expect(minViolations).toBe(0)
   })
 })

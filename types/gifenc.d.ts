@@ -31,12 +31,21 @@ declare module 'gifenc' {
     reset(): void
   }
 
-  export function GIFEncoder(opts?: { auto?: boolean; initialCapacity?: number }): GIFEncoderInstance
+  export function GIFEncoder(opts?: {
+    auto?: boolean
+    initialCapacity?: number
+  }): GIFEncoderInstance
 
   export function quantize(
     rgba: Uint8Array | Uint8ClampedArray,
     maxColors: number,
-    opts?: { format?: GifFormat; oneBitAlpha?: boolean | number; clearAlpha?: boolean; clearAlphaThreshold?: number; clearAlphaColor?: number },
+    opts?: {
+      format?: GifFormat
+      oneBitAlpha?: boolean | number
+      clearAlpha?: boolean
+      clearAlphaThreshold?: number
+      clearAlphaColor?: number
+    },
   ): number[][]
 
   export function applyPalette(

@@ -19,11 +19,7 @@ import { computeAspectStretch } from './aspectPack'
  * @param ctx          a 2D context for measurement (any scale; measured in final px)
  * @param overshootPx  animation overshoot reserve (0 for static)
  */
-export function solveLayout(
-  ctx: Ctx2D,
-  project: EmojiProject,
-  overshootPx = 0,
-): LayoutResult {
+export function solveLayout(ctx: Ctx2D, project: EmojiProject, overshootPx = 0): LayoutResult {
   const margins = computeSafeMargins(project, overshootPx)
   const box = {
     w: Math.max(1, project.export.finalWidth - margins.total * 2),

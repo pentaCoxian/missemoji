@@ -47,8 +47,8 @@ const displaySize = 320
     </div>
 
     <div class="text-center text-xs text-app-muted">
-      Final size: {{ project.export.finalWidth }}×{{ project.export.finalHeight }}
-      · render {{ project.export.renderScale }}×
+      Final size: {{ project.export.finalWidth }}×{{ project.export.finalHeight }} · render
+      {{ project.export.renderScale }}×
     </div>
   </div>
 </template>

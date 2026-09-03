@@ -44,8 +44,18 @@ export const FONT_CATALOG: FontDescriptor[] = [
   // Japanese rounded
   { family: 'Zen Maru Gothic', group: 'jp-rounded', weights: [400, 500, 700, 900], japanese: true },
   { family: 'Kiwi Maru', group: 'jp-rounded', weights: [400, 500], japanese: true },
-  { family: 'M PLUS Rounded 1c', group: 'jp-rounded', weights: [400, 700, 800, 900], japanese: true },
-  { family: 'Zen Kaku Gothic New', group: 'jp-rounded', weights: [400, 500, 700, 900], japanese: true },
+  {
+    family: 'M PLUS Rounded 1c',
+    group: 'jp-rounded',
+    weights: [400, 700, 800, 900],
+    japanese: true,
+  },
+  {
+    family: 'Zen Kaku Gothic New',
+    group: 'jp-rounded',
+    weights: [400, 500, 700, 900],
+    japanese: true,
+  },
   { family: 'Kosugi', group: 'jp-rounded', weights: [400], japanese: true },
 
   // Japanese display
@@ -57,7 +67,12 @@ export const FONT_CATALOG: FontDescriptor[] = [
   { family: 'Train One', group: 'jp-display', weights: [400], japanese: true },
   { family: 'Rampart One', group: 'jp-display', weights: [400], japanese: true },
   { family: 'Zen Antique', group: 'jp-display', weights: [400], japanese: true },
-  { family: 'Shippori Mincho', group: 'jp-display', weights: [400, 500, 600, 700, 800], japanese: true },
+  {
+    family: 'Shippori Mincho',
+    group: 'jp-display',
+    weights: [400, 500, 600, 700, 800],
+    japanese: true,
+  },
   { family: 'Noto Sans JP', group: 'jp-display', weights: [400, 500, 700, 900], japanese: true },
   { family: 'Noto Serif JP', group: 'jp-display', weights: [400, 600, 700, 900], japanese: true },
 
@@ -73,7 +88,12 @@ export const FONT_CATALOG: FontDescriptor[] = [
   // Latin condensed
   { family: 'Oswald', group: 'latin-condensed', weights: [400, 500, 600, 700], japanese: false },
   { family: 'Bebas Neue', group: 'latin-condensed', weights: [400], japanese: false },
-  { family: 'Saira Condensed', group: 'latin-condensed', weights: [400, 600, 700, 800], japanese: false },
+  {
+    family: 'Saira Condensed',
+    group: 'latin-condensed',
+    weights: [400, 600, 700, 800],
+    japanese: false,
+  },
 
   // Handwritten
   { family: 'Caveat', group: 'handwritten', weights: [400, 600, 700], japanese: false },

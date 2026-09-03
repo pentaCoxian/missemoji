@@ -3,10 +3,7 @@ import type { LayoutResult } from '../layout/types'
 import type { RenderFrame, Bounds } from '../types'
 import type { FrameState } from '../animation/model'
 import { IDENTITY_FRAME } from '../animation/model'
-import {
-  createSurface,
-  type RenderSurface,
-} from './renderContext'
+import { createSurface, type RenderSurface } from './renderContext'
 import { placeText, withBlockStretch } from './renderTextLayer'
 import { paintBackground } from './renderDecorations'
 import { paintShadows } from '../effects/shadow'
@@ -32,10 +29,7 @@ export interface RenderOptions {
  *
  * The same code path serves both static (no frame) and one animation frame.
  */
-export function renderProjectFrame(
-  project: EmojiProject,
-  opts: RenderOptions,
-): RenderFrame {
+export function renderProjectFrame(project: EmojiProject, opts: RenderOptions): RenderFrame {
   const scale = project.export.renderScale
   const finalW = project.export.finalWidth
   const finalH = project.export.finalHeight
@@ -57,14 +51,12 @@ export function renderProjectFrame(
   paintBackground(ctx, project.style.background, renderW, renderH)
 
   // --- place text geometry once; reused by all text passes ---
-  const placement = placeText(
-    ctx,
-    project.font,
-    project.layout,
-    opts.layout,
-    scale,
-    { x: 0, y: 0, w: renderW, h: renderH },
-  )
+  const placement = placeText(ctx, project.font, project.layout, opts.layout, scale, {
+    x: 0,
+    y: 0,
+    w: renderW,
+    h: renderH,
+  })
 
   // --- 4. shadow ---
   paintShadows(ctx, project.font, placement, project.style.shadows, scale)
@@ -86,13 +78,7 @@ export function renderProjectFrame(
   const fullBox = { x: 0, y: 0, w: renderW, h: renderH }
   withBlockStretch(ctx, placement, fullBox, () => {
     paintStrokes(ctx, project.font, placement, strokes, scale)
-    paintFill(
-      ctx,
-      project.font,
-      placement,
-      project.style.fill,
-      frame.paint.gradientOffset,
-    )
+    paintFill(ctx, project.font, placement, project.style.fill, frame.paint.gradientOffset)
   })
 
   ctx.restore()
@@ -146,10 +132,7 @@ function cropAndDownscale(
 }
 
 /** Compute alpha bounds of a rendered surface (used by analyze-bounds). */
-export function computeRenderBounds(
-  surface: RenderSurface,
-  threshold = 0,
-): Bounds {
+export function computeRenderBounds(surface: RenderSurface, threshold = 0): Bounds {
   const img = surface.ctx.getImageData(0, 0, surface.width, surface.height)
   return getAlphaBounds(img.data, surface.width, surface.height, threshold)
 }

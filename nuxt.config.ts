@@ -22,7 +22,10 @@ export default defineNuxtConfig({
     '/**': { ssr: false },
   },
 
-  modules: ['@pinia/nuxt', '@vueuse/nuxt'],
+  modules: ['@pinia/nuxt', '@vueuse/nuxt', '@nuxt/eslint'],
+
+  // Lint only; formatting is Prettier's job (see .prettierrc).
+  eslint: { config: { stylistic: false } },
 
   // Type-check the framework-free core/, the workers and the ambient module
   // declarations in types/ as part of the app project (they share its lib set:
