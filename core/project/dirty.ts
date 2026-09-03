@@ -1,5 +1,6 @@
 import type { EmojiProject } from './schema'
 import { computeSafeMargins } from '../layout/safebox'
+import { computeOvershoot } from '../animation/overshoot'
 
 /**
  * Which pipeline stages must re-run after a project change (spec §18).
@@ -65,7 +66,9 @@ export function classifyChange(prev: EmojiProject, next: EmojiProject): Recomput
     if (pm !== nm) flags = merge(flags, { layout: true })
   }
 
-  // Animation preset / params / timing -> re-sample frames + encode.
+  // Animation preset / params / timing -> re-sample frames + encode. The
+  // motion reserve (safe box) depends on the actual motion, so when it changes
+  // the layout must be re-solved too.
   if (
     changed(prev.animation.preset, next.animation.preset) ||
     changed(prev.animation.params, next.animation.params) ||
@@ -75,6 +78,12 @@ export function classifyChange(prev: EmojiProject, next: EmojiProject): Recomput
     prev.animation.phase !== next.animation.phase
   ) {
     flags = merge(flags, { frames: true, encode: true })
+    if (
+      changed(prev.animation.preset, next.animation.preset) ||
+      computeOvershoot(prev) !== computeOvershoot(next)
+    ) {
+      flags = merge(flags, { layout: true })
+    }
   }
 
   // fps / duration -> frame plan changes -> re-sample + render + encode.
