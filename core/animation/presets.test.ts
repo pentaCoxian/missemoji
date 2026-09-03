@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { PRESETS } from './presets'
+import { PRESETS, presetDefaults } from './presets'
 import { smoothLoopEnvelope, smoothLoopOsc, breathe } from './easing'
 import type { LayerTransform } from './model'
 
@@ -43,11 +43,29 @@ describe('animation easing (loop-friendly)', () => {
   })
 })
 
+describe('preset metadata', () => {
+  it('ids are unique', () => {
+    const ids = PRESETS.map((p) => p.id)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  for (const preset of PRESETS) {
+    it(`${preset.id}: every param default lies within its range`, () => {
+      for (const def of preset.params) {
+        expect(def.step).toBeGreaterThan(0)
+        expect(def.default).toBeGreaterThanOrEqual(def.min)
+        expect(def.default).toBeLessThanOrEqual(def.max)
+        expect(presetDefaults(preset)[def.key]).toBe(def.default)
+      }
+    })
+  }
+})
+
 describe('presets loop seamlessly', () => {
   for (const preset of PRESETS) {
     it(`${preset.id}: sample(0) equals sample(1)`, () => {
-      const a = preset.sample(0, preset.defaultParams)
-      const b = preset.sample(1, preset.defaultParams)
+      const a = preset.sample(0, presetDefaults(preset))
+      const b = preset.sample(1, presetDefaults(preset))
       const fa = flatten(a.layer)
       const fb = flatten(b.layer)
       for (let i = 0; i < fa.length; i++) {
@@ -57,8 +75,8 @@ describe('presets loop seamlessly', () => {
     })
 
     it(`${preset.id}: per-char wave loops if present`, () => {
-      const a = preset.sample(0, preset.defaultParams)
-      const b = preset.sample(1, preset.defaultParams)
+      const a = preset.sample(0, presetDefaults(preset))
+      const b = preset.sample(1, presetDefaults(preset))
       if (a.perChar && b.perChar) {
         const ya = a.perChar(2, 5).translate?.y ?? 0
         const yb = b.perChar(2, 5).translate?.y ?? 0
@@ -68,10 +86,11 @@ describe('presets loop seamlessly', () => {
 
     it(`${preset.id}: motion is smooth across adjacent frames (no big jumps)`, () => {
       const N = 24
-      let prev = flatten(preset.sample(0, preset.defaultParams).layer)
+      const params = presetDefaults(preset)
+      let prev = flatten(preset.sample(0, params).layer)
       let maxJump = 0
       for (let i = 1; i <= N; i++) {
-        const cur = flatten(preset.sample(i / N, preset.defaultParams).layer)
+        const cur = flatten(preset.sample(i / N, params).layer)
         for (let k = 0; k < cur.length; k++) {
           maxJump = Math.max(maxJump, Math.abs(cur[k]! - prev[k]!))
         }

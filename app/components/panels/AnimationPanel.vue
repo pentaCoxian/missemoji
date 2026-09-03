@@ -18,21 +18,6 @@ function paramValue(key: string, fallback: number): number {
   const v = project.value.animation.params[key]
   return typeof v === 'number' ? v : fallback
 }
-
-// Sensible slider ranges per known param name.
-function rangeFor(key: string): { min: number; max: number; step: number } {
-  switch (key) {
-    case 'degrees':
-      return { min: 1, max: 30, step: 1 }
-    case 'freq':
-      return { min: 2, max: 12, step: 1 }
-    case 'min':
-    case 'max':
-      return { min: 0, max: 2, step: 0.05 }
-    default:
-      return { min: 0, max: 0.4, step: 0.01 }
-  }
-}
 </script>
 
 <template>
@@ -59,14 +44,15 @@ function rangeFor(key: string): { min: number; max: number; step: number } {
         <!-- Per-preset parameter sliders -->
         <template v-if="activePreset">
           <AppSlider
-            v-for="(def, key) in activePreset.defaultParams"
-            :key="key"
-            :model-value="paramValue(key, def)"
-            :min="rangeFor(key).min"
-            :max="rangeFor(key).max"
-            :step="rangeFor(key).step"
-            :label="key"
-            @update:model-value="store.setAnimParam(key, $event)"
+            v-for="def in activePreset.params"
+            :key="def.key"
+            :model-value="paramValue(def.key, def.default)"
+            :min="def.min"
+            :max="def.max"
+            :step="def.step"
+            :label="def.label"
+            :suffix="def.unit"
+            @update:model-value="store.setAnimParam(def.key, $event)"
           />
         </template>
 
