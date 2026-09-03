@@ -1,8 +1,8 @@
-import { createSurface, supportsCanvasFilter, type Ctx2D } from '../render/renderContext'
+import { createSurface, type Ctx2D } from '../render/renderContext'
 import type { FontSpec, ShadowSpec } from '../project/schema'
 import type { TextPlacement } from '../render/renderTextLayer'
 import { paintPlacedText, withBlockStretch } from '../render/renderTextLayer'
-import { boxBlurRGBA } from './boxblur'
+import { blurredCopy } from './blur'
 
 /**
  * Render drop shadows under the text (spec §9 step 4). Each shadow draws a
@@ -32,18 +32,7 @@ export function paintShadows(
       paintPlacedText(tmp.ctx, font, placement, 'fill'),
     )
 
-    if (blurPx >= 1) {
-      if (supportsCanvasFilter(tmp.ctx)) {
-        const blurred = createSurface(w, h)
-        blurred.ctx.filter = `blur(${blurPx}px)`
-        blurred.ctx.drawImage(tmp.canvas, 0, 0)
-        destCtx.drawImage(blurred.canvas, dx, dy)
-        continue
-      }
-      const img = tmp.ctx.getImageData(0, 0, w, h)
-      boxBlurRGBA(img.data, w, h, blurPx)
-      tmp.ctx.putImageData(img, 0, 0)
-    }
-    destCtx.drawImage(tmp.canvas, dx, dy)
+    const src = blurPx >= 1 ? blurredCopy(tmp.canvas, w, h, blurPx).canvas : tmp.canvas
+    destCtx.drawImage(src, dx, dy)
   }
 }

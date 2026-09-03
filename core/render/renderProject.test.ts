@@ -5,6 +5,9 @@ import { renderProjectFrame } from './renderProject'
 import { solveLayout } from '../layout/solve'
 import { getAlphaBounds } from '../layout/pixelBounds'
 import { createDefaultProject } from '../project/defaults'
+import { sampleFrameState } from '../animation/sampleAnimation'
+import { IDENTITY_PAINT, IDENTITY_TRANSFORM, type FrameState } from '../animation/model'
+import type { EmojiProject } from '../project/schema'
 
 /**
  * Headless render verification using @napi-rs/canvas. This exercises the FULL
@@ -16,16 +19,59 @@ beforeAll(() => {
   setCanvasFactory((w, h) => createCanvas(w, h) as unknown as OffscreenCanvas)
 })
 
-function renderText(text: string) {
+function baseProject(text: string): EmojiProject {
   const project = createDefaultProject()
   project.text = text
   project.font.family = 'sans-serif' // a font node-canvas definitely has
   project.style.fill = { type: 'solid', color: '#ff0000' }
   project.style.strokes = []
+  return project
+}
+
+function renderText(text: string) {
+  const project = baseProject(text)
   const measure = createSurface(64, 64)
   const layout = solveLayout(measure.ctx, project)
   const frame = renderProjectFrame(project, { layout })
   return { frame, layout }
+}
+
+/** Render one animation frame of `preset` at `progress` (defaults params). */
+function renderPreset(project: EmojiProject, preset: string, progress: number) {
+  project.animation.enabled = true
+  project.animation.preset = preset
+  const measure = createSurface(64, 64)
+  const layout = solveLayout(measure.ctx, project)
+  const frame = sampleFrameState(project.animation, progress)
+  return renderProjectFrame(project, { layout, frame })
+}
+
+function renderWithFrame(project: EmojiProject, frame: FrameState) {
+  const measure = createSurface(64, 64)
+  const layout = solveLayout(measure.ctx, project)
+  return renderProjectFrame(project, { layout, frame })
+}
+
+/** Alpha-weighted centroid of a frame, in final px. */
+function centroid(rgba: Uint8ClampedArray, w: number, h: number) {
+  let sx = 0
+  let sy = 0
+  let sum = 0
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const a = rgba[(y * w + x) * 4 + 3]!
+      sx += x * a
+      sy += y * a
+      sum += a
+    }
+  }
+  return { x: sx / sum, y: sy / sum, alphaSum: sum }
+}
+
+function maxAlpha(rgba: Uint8ClampedArray) {
+  let m = 0
+  for (let i = 3; i < rgba.length; i += 4) if (rgba[i]! > m) m = rgba[i]!
+  return m
 }
 
 describe('renderProjectFrame (headless)', () => {
@@ -73,5 +119,57 @@ describe('renderProjectFrame (headless)', () => {
     const short = renderText('A').layout.fontSize
     const long = renderText('ABCDEFGHIJKLMNOP').layout.fontSize
     expect(short).toBeGreaterThan(long)
+  })
+})
+
+describe('animation transforms reach the pixels', () => {
+  it('bounce lifts the text at mid-loop (translate is a canvas fraction)', () => {
+    const rest = renderPreset(baseProject('A'), 'bounce', 0)
+    const top = renderPreset(baseProject('A'), 'bounce', 0.5)
+    const c0 = centroid(rest.rgba, rest.width, rest.height)
+    const c1 = centroid(top.rgba, top.width, top.height)
+    // default height 0.12 × 128px ≈ 15px upward
+    expect(c0.y - c1.y).toBeGreaterThan(5)
+    expect(Math.abs(c0.x - c1.x)).toBeLessThan(1)
+  })
+
+  it('shake moves the text horizontally at a quarter loop', () => {
+    const rest = renderPreset(baseProject('A'), 'shake', 0)
+    const moved = renderPreset(baseProject('A'), 'shake', 0.25 / 3) // freq 3 → first peak
+    const c0 = centroid(rest.rgba, rest.width, rest.height)
+    const c1 = centroid(moved.rgba, moved.width, moved.height)
+    expect(Math.abs(c1.x - c0.x)).toBeGreaterThan(2)
+  })
+
+  it('opacity composites the whole layer once (max alpha ≈ opacity)', () => {
+    const project = baseProject('A')
+    project.style.strokes = [{ width: 6, color: '#ffffff' }]
+    const frame: FrameState = {
+      layer: { ...IDENTITY_TRANSFORM, opacity: 0.5 },
+      paint: IDENTITY_PAINT,
+    }
+    const out = renderWithFrame(project, frame)
+    const m = maxAlpha(out.rgba)
+    expect(m).toBeGreaterThanOrEqual(110)
+    expect(m).toBeLessThanOrEqual(145)
+  })
+
+  it('glow intensity changes continuously (no integer-pass steps)', () => {
+    const sums = [0.7, 0.75, 0.8].map((g) => {
+      const project = baseProject('A')
+      project.style.glows = [{ color: '#ffe27a', radius: 8, intensity: 1 }]
+      const frame: FrameState = {
+        layer: IDENTITY_TRANSFORM,
+        paint: { ...IDENTITY_PAINT, glowIntensity: g },
+      }
+      const out = renderWithFrame(project, frame)
+      return centroid(out.rgba, out.width, out.height).alphaSum
+    })
+    const d1 = sums[1]! - sums[0]!
+    const d2 = sums[2]! - sums[1]!
+    expect(d1).toBeGreaterThan(0)
+    expect(d2).toBeGreaterThan(0)
+    // consecutive increments should be of the same order (old code jumped 5×)
+    expect(Math.max(d1, d2) / Math.min(d1, d2)).toBeLessThan(2.5)
   })
 })
