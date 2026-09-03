@@ -6,6 +6,7 @@ import { IDENTITY_FRAME } from '../animation/model'
 import { createSurface, type Ctx2D, type RenderSurface } from './renderContext'
 import { placeText, withBlockStretch } from './renderTextLayer'
 import { applyPerChar } from './perChar'
+import { tilePlacement } from './tile'
 import { paintBackground } from './renderDecorations'
 import { paintShadows } from '../effects/shadow'
 import { paintGlows } from '../effects/glow'
@@ -81,12 +82,13 @@ function paintEmojiLayer(
 
   // Place text geometry once (plus this frame's per-character motion); reused
   // by every pass for perfect registration.
-  const placement = applyPerChar(
+  let placement = applyPerChar(
     placeText(ctx, project.font, project.layout, layout, scale, fullBox),
     frame.perChar,
     renderW,
     renderH,
   )
+  if (frame.tile) placement = tilePlacement(placement, frame.tile, renderW)
 
   paintShadows(ctx, project.font, placement, project.style.shadows, scale)
 

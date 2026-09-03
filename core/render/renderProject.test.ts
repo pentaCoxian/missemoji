@@ -237,6 +237,21 @@ describe('animation transforms reach the pixels', () => {
     expect(dominantGreen / opaque).toBeGreaterThan(0.9)
   })
 
+  it('marquee scrolls, wraps seamlessly and runs through the canvas edge', () => {
+    const start = renderPreset(baseProject('HELLO'), 'marquee', 0)
+    const mid = renderPreset(baseProject('HELLO'), 'marquee', 0.5)
+    const wrap = renderPreset(baseProject('HELLO'), 'marquee', 1)
+    const b0 = getAlphaBounds(start.rgba, start.width, start.height, 10)
+    const b1 = getAlphaBounds(mid.rgba, mid.width, mid.height, 10)
+    // single big line wider than the canvas: content reaches an edge
+    expect(b0.minX === 0 || b0.maxX >= start.width).toBe(true)
+    // something moved between t=0 and t=0.5
+    expect(start.rgba).not.toEqual(mid.rgba)
+    expect(b0).not.toEqual(b1)
+    // t=1 is the same picture as t=0 (seamless wrap)
+    expect(wrap.rgba).toEqual(start.rgba)
+  })
+
   it('opacity composites the whole layer once (max alpha ≈ opacity)', () => {
     const project = baseProject('A')
     project.style.strokes = [{ width: 6, color: '#ffffff' }]

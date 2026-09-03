@@ -8,6 +8,7 @@ import { generateCandidates } from '../text/lineBreakCandidates'
 import { scoreCandidate } from './scoreLayout'
 import { validatePixelBounds } from './validateBounds'
 import { computeAspectStretch } from './aspectPack'
+import { getPreset, type LayoutHints } from '../animation/presets'
 
 /**
  * Resolve a layout for a project (spec §7).
@@ -15,6 +16,9 @@ import { computeAspectStretch } from './aspectPack'
  * M1 path: single naive candidate (split on \n) → binary-search fit.
  * M3 path (active): generate multiple candidates (1/2/3-line, JP kinsoku) →
  *   fit each → score → return the best.
+ *
+ * The active animation preset may request layout hints (e.g. marquee wants a
+ * single line that may overflow horizontally, unstretched).
  *
  * @param ctx          a 2D context for measurement (any scale; measured in final px)
  * @param overshootPx  animation overshoot reserve (0 for static)
@@ -25,13 +29,27 @@ export function solveLayout(ctx: Ctx2D, project: EmojiProject, overshootPx = 0):
     w: Math.max(1, project.export.finalWidth - margins.total * 2),
     h: Math.max(1, project.export.finalHeight - margins.total * 2),
   }
+  const hints = activeLayoutHints(project)
+  const fitBox = hints.allowOverflowX ? { w: Infinity, h: box.h } : box
+  const validate = (fit: LayoutResult) =>
+    validatePixelBounds(project, fit, margins.total, { ignoreX: hints.allowOverflowX })
+
+  // Single-line presets (marquee): join everything onto one line.
+  if (hints.singleLine) {
+    const source = segmentLines(project.text)
+    const flat = source.flatMap((line, i) => (i > 0 ? [' ', ...line] : line))
+    const fit = fitLines(ctx, project.font, [flat], fitBox)
+    const warnings = source.length > 1 ? ['Marquee uses a single line'] : []
+    const packed = hints.noStretch ? fit : applyStretch(project, fit, box)
+    return validate({ ...packed, warnings: [...packed.warnings, ...warnings] })
+  }
 
   // Manual line breaks: honor \n exactly, single candidate.
   if (project.layout.manualLineBreaks) {
     const lines = segmentLines(project.text)
-    const fit = fitLines(ctx, project.font, lines, box)
-    const packed = applyStretch(project, fit, box)
-    return validatePixelBounds(project, packed, margins.total)
+    const fit = fitLines(ctx, project.font, lines, fitBox)
+    const packed = hints.noStretch ? fit : applyStretch(project, fit, box)
+    return validate(packed)
   }
 
   // Auto layout: generate candidates and pick the best-scoring fit.
@@ -54,8 +72,14 @@ export function solveLayout(ctx: Ctx2D, project: EmojiProject, overshootPx = 0):
 
   // Pack the winner's glyphs to fill the square (aspect stretch), then validate
   // the real visible pixels against the safe box.
-  const packed = applyStretch(project, best!, box)
-  return validatePixelBounds(project, packed, margins.total)
+  const packed = hints.noStretch ? best! : applyStretch(project, best!, box)
+  return validate(packed)
+}
+
+/** Layout hints from the active (enabled) animation preset, if any. */
+function activeLayoutHints(project: EmojiProject): LayoutHints {
+  if (!project.animation.enabled) return {}
+  return getPreset(project.animation.preset)?.layoutHints ?? {}
 }
 
 /** Apply per-letter aspect packing to a fitted layout. */

@@ -62,10 +62,22 @@ export type PerCharFn = (c: CharInfo) => {
   rotate?: number
 }
 
+/**
+ * Repeat the text along an axis so it can scroll through the frame seamlessly
+ * (marquee). `phase` is the scroll position within one period (0..1), `gap` the
+ * space between copies as a fraction of the canvas width.
+ */
+export interface TileSpec {
+  axis: 'x'
+  phase: number
+  gap: number
+}
+
 export interface FrameState {
   layer: LayerTransform
   paint: PaintModulators
   perChar?: PerCharFn
+  tile?: TileSpec
 }
 
 export const IDENTITY_TRANSFORM: LayerTransform = {

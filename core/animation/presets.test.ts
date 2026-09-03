@@ -78,6 +78,7 @@ describe('presets loop seamlessly', () => {
       expect(a.paint.gradientOffset).toBeCloseTo(b.paint.gradientOffset, 5)
       const hue = (deg: number) => ((deg % 360) + 360) % 360
       expect(hue(a.paint.hueShift)).toBeCloseTo(hue(b.paint.hueShift), 5)
+      expect(a.tile?.phase ?? 0).toBeCloseTo(b.tile?.phase ?? 0, 5)
     })
 
     it(`${preset.id}: per-char wave loops if present`, () => {
