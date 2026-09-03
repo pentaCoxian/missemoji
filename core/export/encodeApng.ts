@@ -17,11 +17,9 @@ export const apngEncoder: EmojiEncoder = {
     if (frames.length === 0) throw new Error('No frames to encode')
     opts.onProgress?.(0.1)
 
-    const { frames: optimized } = optimizeFrames(frames)
+    const { frames: renderFrames } = optimizeFrames(frames)
     if (opts.shouldCancel?.()) throw new Error('cancelled')
     opts.onProgress?.(0.4)
-
-    const renderFrames: RenderFrame[] = optimized.map((o) => o.frame)
     // 'size' optimize mode enables palette quantization for smaller files.
     const quantizeColors = opts.optimizeFor === 'size' ? 256 : 0
 

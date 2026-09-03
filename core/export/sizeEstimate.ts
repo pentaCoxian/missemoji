@@ -1,5 +1,6 @@
 import type { EmojiProject } from '../project/schema'
 import type { LayoutResult } from '../layout/types'
+import type { FrameStats } from '../types'
 
 /**
  * File-size estimation + quality/size warnings (spec §16). Warnings cover both
@@ -23,15 +24,30 @@ export function estimateBytes(project: EmojiProject, frameCount: number): number
   return Math.round(px * 4 * frameCount * compression)
 }
 
+/**
+ * Better estimate from rendered-frame stats: only opaque pixels cost bytes
+ * (transparent emoji compress extremely well) and duplicate frames are merged
+ * by optimizeFrames. Bytes-per-opaque-pixel are empirical for zlib'd RGBA
+ * (APNG) and LZW'd 8-bit indices (GIF).
+ */
+export function estimateBytesFromStats(project: EmojiProject, stats: FrameStats[]): number {
+  if (stats.length === 0) return estimateBytes(project, 1)
+  const unique = new Set(stats.map((s) => s.hash)).size
+  const avgOpaque = stats.reduce((sum, s) => sum + s.opaquePixels, 0) / stats.length
+  const perPixel = project.export.format === 'gif' ? 1.0 : 1.4
+  return Math.round(unique * avgOpaque * perPixel + 300)
+}
+
 export function buildWarnings(
   project: EmojiProject,
   layout: LayoutResult | null,
   frameCount: number,
-  actualBytes?: number,
+  /** actual encoded size, or a stats-based estimate; falls back to a rough guess */
+  knownBytes?: number,
   missingGlyphs: string[] = [],
 ): Warning[] {
   const warnings: Warning[] = []
-  const bytes = actualBytes ?? estimateBytes(project, frameCount)
+  const bytes = knownBytes ?? estimateBytes(project, frameCount)
 
   // --- size ---
   if (bytes > HARD_SIZE_LIMIT) {
