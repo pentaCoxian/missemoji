@@ -11,7 +11,7 @@ import type { EmojiProject } from '../project/schema'
 /**
  * End-to-end export verification: render → encode → assert valid file bytes.
  * Covers PNG (static), APNG (animated, upng backend), and GIF (gifenc fallback),
- * plus the optimizeFrames dedup/delta pass.
+ * plus the optimizeFrames dedup pass.
  */
 beforeAll(() => {
   setCanvasFactory((w, h) => createCanvas(w, h) as unknown as OffscreenCanvas)
@@ -103,7 +103,7 @@ describe('export encoders (headless)', () => {
     expect(duplicatesMerged).toBe(2)
     expect(frames.length).toBe(1)
     // merged delays
-    expect(frames[0]!.frame.delayMs).toBe(frame!.delayMs * 3)
+    expect(frames[0]!.delayMs).toBe(frame!.delayMs * 3)
   })
 })
 

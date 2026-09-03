@@ -41,6 +41,14 @@ export interface RenderFrame {
   delayMs: number
 }
 
+/** Cheap per-frame facts used for size estimates and dedup (core/export/frameStats.ts). */
+export interface FrameStats {
+  /** pixels with alpha > 0 */
+  opaquePixels: number
+  /** sampled content hash (equal frames hash equal; collisions possible) */
+  hash: number
+}
+
 /** One entry in an animation sampling plan (see core/animation/frames.ts). */
 export interface FramePlan {
   frameIndex: number
