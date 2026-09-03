@@ -1,18 +1,22 @@
 /**
  * Animation model types (spec §10). A frame's state is a LayerTransform applied
- * around the emoji centre, plus paint modulators. Defined in M1 so the renderer
- * can accept an optional transform from the start; the preset registry that
- * produces these lands in M5.
+ * around the emoji centre, plus paint modulators.
+ *
+ * UNITS: every length here is a FRACTION of the final canvas so presets are
+ * resolution-independent: `translate.x` is multiplied by the canvas width,
+ * `translate.y` by its height, `blur` by the smaller side. The renderer does the
+ * multiplication (core/render/renderProject.ts).
  */
 
 export interface LayerTransform {
+  /** offset as a fraction of canvas width / height */
   translate: { x: number; y: number }
   scale: { x: number; y: number }
   /** rotation in radians */
   rotate: number
-  /** 0..1 */
+  /** 0..1; applied ONCE to the composed layer (no per-pass double blending) */
   opacity: number
-  /** blur in px (render-space; usually 0) */
+  /** blur radius as a fraction of min(canvas width, height); usually 0 */
   blur: number
 }
 
