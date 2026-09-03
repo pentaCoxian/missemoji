@@ -21,3 +21,32 @@ export function buildCss2Url(
   params.push('display=swap')
   return `https://fonts.googleapis.com/css2?${params.join('&')}`
 }
+
+export interface ParsedFace {
+  weight: number
+  style: 'normal' | 'italic'
+  src: string
+  unicodeRange?: string
+}
+
+/**
+ * Parse @font-face blocks from Google CSS2 output: weight, style, the first
+ * woff2 url() in src, and the unicode-range (JP fonts ship many subset blocks).
+ */
+export function parseFontFaces(css: string): ParsedFace[] {
+  const faces: ParsedFace[] = []
+  const blockRe = /@font-face\s*{([^}]*)}/g
+  let m: RegExpExecArray | null
+  while ((m = blockRe.exec(css))) {
+    const body = m[1]!
+    const weight = Number(/font-weight:\s*(\d+)/.exec(body)?.[1] ?? '400')
+    const style = /font-style:\s*italic/.test(body) ? ('italic' as const) : ('normal' as const)
+    // Prefer a woff2 url; fall back to the first url().
+    const src =
+      /url\(([^)]+\.woff2[^)]*)\)/.exec(body)?.[1]?.replace(/['"]/g, '') ??
+      /url\(([^)]+)\)/.exec(body)?.[1]?.replace(/['"]/g, '')
+    const unicodeRange = /unicode-range:\s*([^;]+);/.exec(body)?.[1]?.trim()
+    if (src) faces.push({ weight, style, src, unicodeRange })
+  }
+  return faces
+}
