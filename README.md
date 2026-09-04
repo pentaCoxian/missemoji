@@ -147,17 +147,44 @@ test in `core/export/apng/wasmBackend.test.ts`; the test is skipped when absent.
 Verified end to end against Cloudflare's own runtime (`wrangler pages dev`):
 the SPA, both Web Workers, the Rust→WASM encoder and the font proxy all work.
 
-| Setting | Value |
-|---|---|
-| Build command | `npx nuxt build` |
-| Build output directory | `dist` |
-| Environment variable | `NITRO_PRESET=cloudflare_pages` |
-| Node version | 22 or 24 (`NODE_VERSION`) |
+Pushing to `master` deploys automatically — see **Continuous integration**
+below. To deploy by hand:
+
+```bash
+npm run deploy       # build with the Cloudflare preset, then wrangler deploy
+npm run preview:cf   # same build, served locally in Cloudflare's runtime
+```
+
+`wrangler.toml` holds the project name and output directory; `npm run build:cf`
+sets `NITRO_PRESET=cloudflare_pages` so local and CI builds match.
 
 Nitro emits `_routes.json` so only `/` and `/api/font-css` reach the Worker —
 everything under `/_nuxt/*` is served as a static asset. The Worker bundle is
 ~0.2 MB gzipped, well inside the 1 MB free-plan limit; the 100 KB WASM encoder
 ships as a client asset, not in the Worker.
+
+### Continuous integration
+
+Two workflows in `.github/workflows`:
+
+- **CI** (`ci.yml`) runs on every push and pull request: lint, formatting,
+  typecheck, the full test suite, and a Cloudflare-preset build. It also fails
+  if the Worker bundle would exceed Cloudflare's 1 MB gzipped limit, so that is
+  caught in review rather than at deploy time.
+- **Deploy** (`deploy.yml`) runs on pushes to `master` (or manually via
+  *Run workflow*). It calls CI first and deploys only if everything passes,
+  creating the Pages project on the first run if it does not exist yet.
+
+Both use Node 24. Node 23 is deliberately avoided: it falls outside Nuxt 4.4's
+supported range.
+
+Deploying needs two repository secrets (Settings → Secrets and variables →
+Actions):
+
+| Secret | Where to get it |
+|---|---|
+| `CLOUDFLARE_API_TOKEN` | Cloudflare dashboard → My Profile → API Tokens → Create Token, using the **Edit Cloudflare Workers** template, or a custom token with the *Cloudflare Pages: Edit* permission |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare dashboard sidebar, or `npx wrangler whoami` |
 
 ### Any static host
 
