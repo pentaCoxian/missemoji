@@ -33,10 +33,13 @@ const statusLabel = computed(() => {
 </script>
 
 <template>
-  <div class="flex h-full flex-col items-center justify-center gap-3 lg:gap-6">
-    <!-- The canvas is scaled up for a comfortable editing view: fixed 320px on
-         desktop, shrunk to fit narrow screens on mobile. -->
-    <div class="relative w-[min(240px,70vw)] lg:w-[320px]">
+  <div class="flex h-full flex-col items-center justify-center gap-2 lg:gap-6">
+    <!-- Desktop gets a fixed 320px stage. On mobile the canvas is square and
+         must fit BOTH axes: 60vw keeps it off the side edges, and the 26svh
+         term keeps it from eating the panel space when the viewport is short
+         — svh is the URL-bar-visible height, so the layout does not jump as
+         the bar hides and shows. -->
+    <div class="relative w-[min(60vw,26svh,240px)] lg:w-[320px]">
       <div
         class="flex aspect-square items-center justify-center overflow-hidden rounded-app shadow-lg"
         :class="backgroundClass"
@@ -56,7 +59,7 @@ const statusLabel = computed(() => {
       </div>
     </div>
 
-    <div class="text-center text-xs text-app-muted">
+    <div class="hidden text-center text-app-muted lg:block lg:text-xs">
       Final size: {{ project.export.finalWidth }}×{{ project.export.finalHeight }} · render
       {{ project.export.renderScale }}×
       <span v-if="renderer === 'main'" title="Fonts are not available to the render worker here">
