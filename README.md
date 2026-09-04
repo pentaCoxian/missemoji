@@ -5,6 +5,9 @@ like a motion-graphics tool, export like an emoji tool.
 
 - High-resolution RGBA rendering (2×/4×/8× supersampling) downsampled to
   128/256 for clean edges
+- **Size-independent design**: style geometry is stored as a fraction of the
+  canvas, so a 256×256 export is a true 2× enlargement of the 128×128 one —
+  same relative point size, same relative outline weight
 - **APNG-first** export (full alpha, no GIF banding) + PNG and GIF fallback
   (GIF uses one global palette — no colour shimmer)
 - Real **layout solver** (not naive scale-to-fit) with **Japanese-aware** line
@@ -14,11 +17,15 @@ like a motion-graphics tool, export like an emoji tool.
   marquee** — plus direction (forward / reverse / ping-pong), hold-at-rest and
   phase controls
 - Curated, keyless Google Fonts (no API key) with JP filtering, italics where
-  the family has them, and **custom font upload** (.ttf/.otf/.woff/.woff2)
+  the family has them, **live previews of your own text in every font**,
+  weight picking limited to the weights a family ships, **any Google font by
+  pasting a link**, and **custom font upload** (.ttf/.otf/.woff/.woff2)
 - Fill (solid / feathered gradient), outline / double outline, shadow, glow,
   solid or rounded background
 - Misskey export presets, actual-size preview strip, dark/light/checker
-  backgrounds, readability and file-size warnings
+  backgrounds (using Misskey's real page colours), readability and file-size
+  warnings
+- Editor chrome themed after Misskey's own "Mi Dark" palette
 - **Preview = export**: one render worker (with its own fonts) renders both the
   live preview frame cache and the exported frames through the same code path
 - **Autosave**, undo/redo (⌘Z / ⇧⌘Z), project JSON save/load, **share links**,
@@ -68,6 +75,32 @@ because Node 23 is outside their engine ranges).
 
 Aliases `#core`, `#workers`, `#types` are set in `nuxt.config.ts` (and mirrored
 into the generated tsconfigs). The app renders client-only via `routeRules`.
+
+### Style units
+
+Every style length — padding, outline width, shadow blur and offset, glow
+radius, letter spacing, blob background geometry — is stored as a **fraction of
+the canvas size** (`core/project/units.ts`), never pixels. Absolute pixels made
+a project render differently per export size: a 6 px outline is heavy on a
+128 px emoji and light on a 256 px one, and the fitted point size drifted ~10 %
+between them.
+
+The solver additionally runs at a fixed 128 px reference and scales its result,
+because font rasterizers quantize glyph advances to whole pixels — measuring at
+two sizes could otherwise pick a slightly different point size or line break.
+
+Sliders still show pixels at that 128 px reference, so "6 px outline" keeps its
+familiar meaning. `migrateProject` upgrades v1/v2 projects by dividing their
+lengths by their own canvas size, so saved work keeps its exact look.
+
+### Adding fonts
+
+Beyond the curated catalog you can paste either a font's specimen page URL
+(`fonts.google.com/specimen/Rampart+One`) or the CSS link from "Get font"
+(`fonts.googleapis.com/css2?family=Inter:wght@400;700`). Weights and italics
+named in the link are honoured. Added fonts persist across reloads — only the
+descriptor is stored, so they re-fetch from Google exactly like catalog fonts.
+Uploaded font *files* stay in memory for the session only.
 
 ### Animation model
 
