@@ -6,6 +6,7 @@ import SegmentedControl from '~/components/controls/SegmentedControl.vue'
 import ToggleSwitch from '~/components/controls/ToggleSwitch.vue'
 import AppSlider from '~/components/controls/AppSlider.vue'
 import BatchSection from '~/components/panels/BatchSection.vue'
+import { fractionToRefPx, refPxToFraction } from '#core/project/units'
 import type { Align, LayoutMode, VerticalAlign } from '#core/project/schema'
 
 const store = useProjectStore()
@@ -70,23 +71,23 @@ const vAligns: { value: VerticalAlign; label: string }[] = [
         @update:model-value="store.setVerticalAlign($event)"
       />
       <AppSlider
-        :model-value="project.layout.padding"
+        :model-value="fractionToRefPx(project.layout.padding)"
         :min="0"
         :max="32"
         label="Padding"
         suffix="px"
-        @update:model-value="store.setPadding($event)"
+        @update:model-value="store.setPadding(refPxToFraction($event))"
       />
     </PanelSection>
 
     <PanelSection title="Typography">
       <AppSlider
-        :model-value="project.font.letterSpacing"
+        :model-value="fractionToRefPx(project.font.letterSpacing)"
         :min="-10"
         :max="20"
         label="Letter spacing"
         suffix="px"
-        @update:model-value="store.setLetterSpacing($event)"
+        @update:model-value="store.setLetterSpacing(refPxToFraction($event))"
       />
       <AppSlider
         :model-value="project.font.lineHeight"

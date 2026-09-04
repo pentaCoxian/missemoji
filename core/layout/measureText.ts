@@ -23,6 +23,8 @@ export function measureRun(
   font: FontSpec,
   sizePx: number,
   clusters: string[],
+  /** letter spacing in the SAME px space as `sizePx` (already resolved) */
+  letterSpacingPx = 0,
 ): TextMetricsResult {
   ctx.font = cssFont(font, sizePx)
   ctx.textBaseline = 'alphabetic'
@@ -33,14 +35,14 @@ export function measureRun(
 
   for (const c of clusters) {
     const m = ctx.measureText(c)
-    width += m.width + font.letterSpacing
+    width += m.width + letterSpacingPx
     const a = m.actualBoundingBoxAscent || m.fontBoundingBoxAscent || sizePx * 0.8
     const d = m.actualBoundingBoxDescent || m.fontBoundingBoxDescent || sizePx * 0.2
     if (a > ascent) ascent = a
     if (d > descent) descent = d
   }
   // Remove the trailing letter-spacing added after the last cluster.
-  if (clusters.length > 0) width -= font.letterSpacing
+  if (clusters.length > 0) width -= letterSpacingPx
 
   return { width: Math.max(0, width), ascent, descent }
 }
@@ -53,11 +55,16 @@ export function measureRun(
 const cache = new Map<string, TextMetricsResult>()
 const MAX_ENTRIES = 4000
 
-function key(font: FontSpec, sizePx: number, clusters: string[]): string {
+function key(font: FontSpec, sizePx: number, clusters: string[], letterSpacingPx: number): string {
   const bucket = Math.round(sizePx * 2) / 2
-  return [font.family, font.weight, font.style, font.letterSpacing, bucket, clusters.join('')].join(
-    '|',
-  )
+  return [
+    font.family,
+    font.weight,
+    font.style,
+    Math.round(letterSpacingPx * 100) / 100,
+    bucket,
+    clusters.join(''),
+  ].join('|')
 }
 
 export function measureRunCached(
@@ -65,8 +72,9 @@ export function measureRunCached(
   font: FontSpec,
   sizePx: number,
   clusters: string[],
+  letterSpacingPx = 0,
 ): TextMetricsResult {
-  const k = key(font, sizePx, clusters)
+  const k = key(font, sizePx, clusters, letterSpacingPx)
   const hit = cache.get(k)
   if (hit) {
     // refresh LRU position
@@ -74,7 +82,7 @@ export function measureRunCached(
     cache.set(k, hit)
     return hit
   }
-  const result = measureRun(ctx, font, sizePx, clusters)
+  const result = measureRun(ctx, font, sizePx, clusters, letterSpacingPx)
   cache.set(k, result)
   if (cache.size > MAX_ENTRIES) {
     const oldest = cache.keys().next().value

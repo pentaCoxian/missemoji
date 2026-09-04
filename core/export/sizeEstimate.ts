@@ -1,6 +1,7 @@
 import type { EmojiProject } from '../project/schema'
 import type { LayoutResult } from '../layout/types'
 import type { FrameStats } from '../types'
+import { fractionToPx, styleBasis } from '../project/units'
 
 /**
  * File-size estimation + quality/size warnings (spec §16). Warnings cover both
@@ -88,7 +89,12 @@ export function buildWarnings(
       })
     }
 
-    const maxStroke = project.style.strokes.reduce((m, s) => Math.max(m, s.width), 0)
+    // style lengths are fractions of canvas size; compare in final px
+    const basis = styleBasis(project.export.finalWidth, project.export.finalHeight)
+    const maxStroke = project.style.strokes.reduce(
+      (m, s) => Math.max(m, fractionToPx(s.width, basis)),
+      0,
+    )
     if (maxStroke > layout.fontSize * 0.25) {
       warnings.push({
         level: 'warn',
@@ -96,7 +102,10 @@ export function buildWarnings(
       })
     }
 
-    const maxGlow = project.style.glows.reduce((m, g) => Math.max(m, g.radius), 0)
+    const maxGlow = project.style.glows.reduce(
+      (m, g) => Math.max(m, fractionToPx(g.radius, basis)),
+      0,
+    )
     if (maxGlow > layout.fontSize * 0.6) {
       warnings.push({
         level: 'info',

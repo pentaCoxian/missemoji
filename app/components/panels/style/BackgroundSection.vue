@@ -6,6 +6,7 @@ import PanelSection from '~/components/controls/PanelSection.vue'
 import SegmentedControl from '~/components/controls/SegmentedControl.vue'
 import ColorPicker from '~/components/controls/ColorPicker.vue'
 import AppSlider from '~/components/controls/AppSlider.vue'
+import { fractionToRefPx, refPxToFraction } from '#core/project/units'
 
 type BgKind = 'none' | 'solid' | 'blob'
 
@@ -25,7 +26,13 @@ function setKind(k: BgKind) {
   const color = bg.value?.color ?? '#ffffff'
   if (k === 'none') store.setBackground(null)
   else if (k === 'solid') store.setBackground({ type: 'solid', color })
-  else store.setBackground({ type: 'blob', color, radius: 24, padding: 4 })
+  else
+    store.setBackground({
+      type: 'blob',
+      color,
+      radius: refPxToFraction(24),
+      padding: refPxToFraction(4),
+    })
 }
 function setColor(color: string) {
   if (!bg.value) return
@@ -44,20 +51,20 @@ function setBlob(patch: { radius?: number; padding?: number }) {
       <ColorPicker :model-value="bg.color" label="Color" @update:model-value="setColor" />
       <template v-if="blob">
         <AppSlider
-          :model-value="blob.radius"
+          :model-value="fractionToRefPx(blob.radius)"
           :min="0"
           :max="64"
           label="Corner radius"
           suffix="px"
-          @update:model-value="setBlob({ radius: $event })"
+          @update:model-value="setBlob({ radius: refPxToFraction($event) })"
         />
         <AppSlider
-          :model-value="blob.padding"
+          :model-value="fractionToRefPx(blob.padding)"
           :min="0"
           :max="32"
           label="Padding"
           suffix="px"
-          @update:model-value="setBlob({ padding: $event })"
+          @update:model-value="setBlob({ padding: refPxToFraction($event) })"
         />
       </template>
     </template>

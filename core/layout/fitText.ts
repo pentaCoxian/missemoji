@@ -42,7 +42,11 @@ export function fitLines(
     return r.blockWidth <= box.w && r.blockHeight <= box.h
   }
 
-  // Binary search the largest fitting integer-ish size.
+  // Binary search the largest fitting size. The termination tolerance is
+  // RELATIVE (a fraction of the current size), not an absolute 0.5 px: an
+  // absolute epsilon is coarse on a small canvas and fine on a big one, which
+  // would make the fitted size drift slightly between export sizes.
+  const TOLERANCE = 1e-4
   let lo = minPx
   let hi = maxPx
   if (!fits(lo)) {
@@ -60,7 +64,7 @@ export function fitLines(
     }
   }
   // Expand hi if it still fits (rare for tiny text in a big box).
-  for (let i = 0; i < 40 && hi - lo > 0.5; i++) {
+  for (let i = 0; i < 60 && hi - lo > lo * TOLERANCE; i++) {
     const mid = (lo + hi) / 2
     if (fits(mid)) lo = mid
     else hi = mid

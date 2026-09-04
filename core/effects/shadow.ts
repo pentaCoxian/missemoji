@@ -6,15 +6,17 @@ import { blurredCopy } from './blur'
 
 /**
  * Render drop shadows under the text (spec §9 step 4). Each shadow draws a
- * blurred, offset silhouette. Blur/offset are scaled to render px. Drawn before
- * glow/stroke/fill so it sits behind everything.
+ * blurred, offset silhouette. Drawn before glow/stroke/fill so it sits behind
+ * everything.
+ *
+ * Blur and offsets are in RENDER px here: the caller resolved the stored
+ * canvas-size fractions (see core/project/units.ts).
  */
 export function paintShadows(
   destCtx: Ctx2D,
   font: FontSpec,
   placement: TextPlacement,
   shadows: ShadowSpec[],
-  scale: number,
 ) {
   if (shadows.length === 0) return
 
@@ -22,9 +24,9 @@ export function paintShadows(
   const h = destCtx.canvas.height
 
   for (const shadow of shadows) {
-    const blurPx = shadow.blur * scale
-    const dx = shadow.offsetX * scale
-    const dy = shadow.offsetY * scale
+    const blurPx = shadow.blur
+    const dx = shadow.offsetX
+    const dy = shadow.offsetY
 
     const tmp = createSurface(w, h)
     tmp.ctx.fillStyle = shadow.color

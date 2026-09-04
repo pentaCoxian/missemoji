@@ -1,8 +1,12 @@
 import { PROJECT_VERSION, type EmojiProject } from './schema'
+import { refPxToFraction } from './units'
 
 /**
  * Factory for a fresh EmojiProject. Defaults mirror the spec's APNG defaults
  * (spec §12): 128×128 final, 4× render scale, 12fps / 1000ms, transparent bg.
+ *
+ * Style geometry is stored as a fraction of canvas size; `refPxToFraction`
+ * spells the defaults as the pixel values the UI shows at 128 px.
  */
 export function createDefaultProject(): EmojiProject {
   return {
@@ -13,19 +17,19 @@ export function createDefaultProject(): EmojiProject {
       family: 'Mochiy Pop One',
       weight: 400,
       style: 'normal',
-      letterSpacing: 0,
+      letterSpacing: refPxToFraction(0),
       lineHeight: 1.05,
     },
     layout: {
       mode: 'fit',
       align: 'center',
       verticalAlign: 'middle',
-      padding: 4,
+      padding: refPxToFraction(4),
       manualLineBreaks: false,
     },
     style: {
       fill: { type: 'solid', color: '#ff5d8f' },
-      strokes: [{ width: 6, color: '#ffffff' }],
+      strokes: [{ width: refPxToFraction(6), color: '#ffffff' }],
       shadows: [],
       glows: [],
       background: null,
