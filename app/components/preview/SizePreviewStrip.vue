@@ -14,6 +14,10 @@ const { backgroundClass } = storeToRefs(editor)
 const { currentBitmap } = usePreviewFrames()
 
 const sizes = [24, 32, 48, 72, 128]
+// On phones the big rungs eat too much vertical space (and 128 nearly
+// duplicates the main preview), so only the small reaction/timeline sizes
+// stay; the full ladder returns from `sm` up.
+const MOBILE_MAX = 48
 const canvases = new Map<number, HTMLCanvasElement>()
 
 function setCanvas(size: number, el: unknown) {
@@ -43,8 +47,13 @@ onMounted(draw)
 </script>
 
 <template>
-  <div class="flex items-end justify-center gap-4">
-    <div v-for="s in sizes" :key="s" class="flex flex-col items-center gap-1">
+  <div class="flex items-end justify-center gap-2 overflow-x-auto sm:gap-4">
+    <div
+      v-for="s in sizes"
+      :key="s"
+      class="flex-col items-center gap-1"
+      :class="s > MOBILE_MAX ? 'hidden sm:flex' : 'flex'"
+    >
       <div
         class="flex items-center justify-center overflow-hidden rounded"
         :class="backgroundClass"
