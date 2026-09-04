@@ -22,7 +22,7 @@ like a motion-graphics tool, export like an emoji tool.
   pasting a link**, and **custom font upload** (.ttf/.otf/.woff/.woff2)
 - Fill (solid / feathered gradient), outline / double outline, shadow, glow,
   solid or rounded background
-- Misskey export presets, actual-size preview strip, dark/light/checker
+- Actual-size preview strip (24/32/48/72/128 px), dark/light/checker
   backgrounds (using Misskey's real page colours), readability and file-size
   warnings
 - Editor chrome themed after Misskey's own "Mi Dark" palette

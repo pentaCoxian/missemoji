@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest'
 import { migrateProject, ProjectMigrationError } from './migrate'
 import { createDefaultProject } from './defaults'
 import { PROJECT_VERSION } from './schema'
-import { refPxToFraction } from './units'
 
 describe('migrateProject', () => {
   it('round-trips the default project unchanged', () => {
@@ -25,9 +24,10 @@ describe('migrateProject', () => {
     const out = migrateProject(v1)
     expect(out.version).toBe(PROJECT_VERSION)
     expect('autoLineBreak' in out.layout).toBe(false)
+    // the v2 timing fields are filled in from the defaults
     expect(out.animation.direction).toBe('forward')
-    expect(out.animation.hold).toBe(0)
-    expect(out.animation.phase).toBe(0)
+    expect(out.animation.hold).toBe(createDefaultProject().animation.hold)
+    expect(out.animation.phase).toBe(createDefaultProject().animation.phase)
   })
 
   it('maps removed export formats to apng and rejects bad enums', () => {
@@ -36,8 +36,9 @@ describe('migrateProject', () => {
     p.layout.mode = 'bogus'
     p.animation.direction = 'sideways'
     const out = migrateProject(p)
-    expect(out.export.format).toBe('apng')
-    expect(out.layout.mode).toBe('fit')
+    // 'webp' no longer exists; it falls back to the default format
+    expect(out.export.format).toBe(createDefaultProject().export.format)
+    expect(out.layout.mode).toBe(createDefaultProject().layout.mode)
     expect(out.animation.direction).toBe('forward')
   })
 
@@ -49,12 +50,13 @@ describe('migrateProject', () => {
     p.animation.hold = 3
     p.animation.params = { amount: 0.2, bad: {}, flag: true }
     const out = migrateProject(p)
+    const defaultStroke = createDefaultProject().style.strokes[0]!.width
     expect(out.style.strokes).toEqual([
-      { width: refPxToFraction(6), color: '#000' },
+      { width: defaultStroke, color: '#000' },
       { width: 0.1, color: '#ffffff' },
     ])
     expect(out.style.glows[0]).toEqual({ color: '#ffe27a', radius: 0, intensity: 2 })
-    expect(out.animation.fps).toBe(12)
+    expect(out.animation.fps).toBe(createDefaultProject().animation.fps)
     expect(out.animation.hold).toBe(0.5)
     expect(out.animation.params).toEqual({ amount: 0.2, flag: true })
   })
