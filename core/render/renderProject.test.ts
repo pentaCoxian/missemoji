@@ -23,12 +23,29 @@ beforeAll(() => {
   setCanvasFactory((w, h) => createCanvas(w, h) as unknown as OffscreenCanvas)
 })
 
+/**
+ * A deliberately plain 128×128 project. These tests assert on exact pixels, so
+ * they pin every value they depend on instead of inheriting whatever the app's
+ * shipped defaults happen to be.
+ */
 function baseProject(text: string): EmojiProject {
   const project = createDefaultProject()
   project.text = text
   project.font.family = 'sans-serif' // a font node-canvas definitely has
+  project.font.letterSpacing = 0
+  project.layout.mode = 'fit'
+  project.layout.padding = refPxToFraction(4)
   project.style.fill = { type: 'solid', color: '#ff0000' }
   project.style.strokes = []
+  project.style.shadows = []
+  project.style.glows = []
+  project.style.background = null
+  project.animation.hold = 0
+  project.animation.phase = 0
+  project.export.finalWidth = 128
+  project.export.finalHeight = 128
+  project.export.renderScale = 4
+  project.size = { width: 128, height: 128 }
   return project
 }
 

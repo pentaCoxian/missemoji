@@ -3,11 +3,22 @@ import { computeOvershoot } from './overshoot'
 import { createDefaultProject } from '../project/defaults'
 import { computeSafeMargins } from '../layout/safebox'
 
+/**
+ * A plain 128×128 project with no effect margins, so the numbers below are
+ * about the animation's reach and nothing else.
+ */
 function project(preset: string, params: Record<string, number> = {}, enabled = true) {
   const p = createDefaultProject()
   p.animation.enabled = enabled
   p.animation.preset = preset
   p.animation.params = params
+  p.layout.padding = 0
+  p.style.strokes = []
+  p.style.shadows = []
+  p.style.glows = []
+  p.export.finalWidth = 128
+  p.export.finalHeight = 128
+  p.size = { width: 128, height: 128 }
   return p
 }
 

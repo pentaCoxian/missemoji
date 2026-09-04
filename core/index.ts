@@ -27,7 +27,6 @@ export {
 export { loadGoogleFont } from './fonts/loadFont'
 export { buildCss2Url } from './fonts/googleFontsCss'
 export { setCanvasFactory, type CanvasFactory } from './render/renderContext'
-export { EXPORT_PRESETS, getExportPreset, type ExportPreset } from './presets/exportPresets'
 export { readabilityPenalty } from './presets/readability'
 export { buildWarnings, estimateBytes, type Warning } from './export/sizeEstimate'
 export { getEncoder } from './export/registry'

@@ -2,35 +2,51 @@ import { PROJECT_VERSION, type EmojiProject } from './schema'
 import { refPxToFraction } from './units'
 
 /**
- * Factory for a fresh EmojiProject. Defaults mirror the spec's APNG defaults
- * (spec §12): 128×128 final, 4× render scale, 12fps / 1000ms, transparent bg.
+ * Factory for a fresh EmojiProject.
  *
- * Style geometry is stored as a fraction of canvas size; `refPxToFraction`
- * spells the defaults as the pixel values the UI shows at 128 px.
+ * These defaults are a real, hand-tuned emoji rather than a neutral blank: a
+ * 256×256 PNG in Impact layout with a gold→charcoal gradient, a thin white
+ * outline and a soft drop shadow. Style geometry is stored as a fraction of
+ * canvas size; `refPxToFraction` spells those values as the pixel numbers the
+ * UI shows at its 128 px reference.
  */
 export function createDefaultProject(): EmojiProject {
   return {
     version: PROJECT_VERSION,
-    text: 'やった！',
-    size: { width: 128, height: 128 },
+    text: '沈黙\nは金',
+    size: { width: 256, height: 256 },
     font: {
-      family: 'Mochiy Pop One',
+      family: 'Mochiy Pop P One',
       weight: 400,
       style: 'normal',
-      letterSpacing: refPxToFraction(0),
-      lineHeight: 1.05,
+      letterSpacing: refPxToFraction(4),
+      lineHeight: 1,
     },
     layout: {
-      mode: 'fit',
+      mode: 'impact',
       align: 'center',
       verticalAlign: 'middle',
-      padding: refPxToFraction(4),
+      padding: 0,
       manualLineBreaks: false,
     },
     style: {
-      fill: { type: 'solid', color: '#ff5d8f' },
-      strokes: [{ width: refPxToFraction(6), color: '#ffffff' }],
-      shadows: [],
+      fill: {
+        type: 'linear-gradient',
+        stops: [
+          { position: 0, color: '#fffb80' },
+          { position: 1, color: '#22212b' },
+        ],
+        angle: 142,
+      },
+      strokes: [{ width: refPxToFraction(3), color: '#ffffff' }],
+      shadows: [
+        {
+          color: '#00000088',
+          blur: refPxToFraction(6),
+          offsetX: 0,
+          offsetY: refPxToFraction(4),
+        },
+      ],
       glows: [],
       background: null,
       decorations: [],
@@ -38,21 +54,20 @@ export function createDefaultProject(): EmojiProject {
     animation: {
       enabled: false,
       preset: 'pulse',
-      // Calmer, slower default loop than the spec's 1000ms for a smoother feel.
-      durationMs: 1400,
-      fps: 12,
+      durationMs: 1600,
+      fps: 24,
       loop: true,
       direction: 'forward',
-      hold: 0,
-      phase: 0,
+      hold: 0.25,
+      phase: 0.35,
       params: {},
     },
     export: {
-      format: 'apng',
-      finalWidth: 128,
-      finalHeight: 128,
-      renderScale: 4,
-      optimizeFor: 'balanced',
+      format: 'png',
+      finalWidth: 256,
+      finalHeight: 256,
+      renderScale: 2,
+      optimizeFor: 'quality',
     },
   }
 }

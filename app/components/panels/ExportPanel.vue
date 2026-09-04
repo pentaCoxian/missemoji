@@ -10,7 +10,6 @@ import PanelSection from '~/components/controls/PanelSection.vue'
 import SegmentedControl from '~/components/controls/SegmentedControl.vue'
 import ChoiceButton from '~/components/controls/ChoiceButton.vue'
 import WarningList from '~/components/warnings/WarningList.vue'
-import ExportPresetSelect from '~/components/presets/ExportPresetSelect.vue'
 import type { ExportFormat, OptimizeFor } from '#core/project/schema'
 import { parseBatchLines } from '#core/export/batch'
 import { getFontDescriptor } from '#core/fonts/catalog'
@@ -75,10 +74,6 @@ const renderScales: { value: number; label: string }[] = [
 
 <template>
   <div>
-    <PanelSection title="Misskey Presets">
-      <ExportPresetSelect />
-    </PanelSection>
-
     <PanelSection title="Export">
       <SegmentedControl
         :model-value="project.export.format"
