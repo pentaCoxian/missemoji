@@ -6,11 +6,14 @@ import PanelSection from '~/components/controls/PanelSection.vue'
 import ToggleSwitch from '~/components/controls/ToggleSwitch.vue'
 import FontPicker from '~/components/fonts/FontPicker.vue'
 import FontUpload from '~/components/fonts/FontUpload.vue'
-import { getFontDescriptor } from '#core/fonts/catalog'
+import FontUrlInput from '~/components/fonts/FontUrlInput.vue'
+import FontWeightControl from '~/components/fonts/FontWeightControl.vue'
+import { useFontResolver } from '~/composables/useFontResolver'
 
 const store = useProjectStore()
 const { project } = storeToRefs(store)
-const hasItalic = computed(() => !!getFontDescriptor(project.value.font.family)?.italic)
+const { resolve } = useFontResolver()
+const hasItalic = computed(() => resolve(project.value.font.family).italic)
 </script>
 
 <template>
@@ -21,7 +24,9 @@ const hasItalic = computed(() => !!getFontDescriptor(project.value.font.family)?
       label="Italic"
       @update:model-value="store.setFontStyle($event ? 'italic' : 'normal')"
     />
+    <FontWeightControl />
     <FontPicker />
+    <FontUrlInput />
     <FontUpload />
   </PanelSection>
 </template>

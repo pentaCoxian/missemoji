@@ -97,14 +97,6 @@ const vAligns: { value: VerticalAlign; label: string }[] = [
         label="Line height"
         @update:model-value="store.setLineHeight($event)"
       />
-      <AppSlider
-        :model-value="project.font.weight"
-        :min="100"
-        :max="900"
-        :step="100"
-        label="Weight"
-        @update:model-value="store.setFontWeight($event)"
-      />
     </PanelSection>
   </div>
 </template>

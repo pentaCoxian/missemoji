@@ -24,21 +24,42 @@ export default defineNuxtPlugin(async (nuxtApp) => {
   try {
     const raw = localStorage.getItem(KEY_FONTS)
     if (raw) {
-      const data = JSON.parse(raw) as { favorites?: string[]; recent?: string[] }
+      const data = JSON.parse(raw) as {
+        favorites?: string[]
+        recent?: string[]
+        added?: { family?: unknown; weights?: unknown; italic?: unknown }[]
+      }
       if (Array.isArray(data.favorites)) fonts.favorites = data.favorites
       if (Array.isArray(data.recent)) fonts.recent = data.recent
+      // Fonts added by pasting a Google Fonts link: only the descriptor is
+      // stored, so they re-fetch from Google exactly like catalog fonts.
+      if (Array.isArray(data.added)) {
+        fonts.addedFonts = data.added
+          .filter((f) => typeof f?.family === 'string' && f.family)
+          .map((f) => ({
+            family: f.family as string,
+            weights: Array.isArray(f.weights)
+              ? (f.weights.filter((w) => typeof w === 'number') as number[])
+              : [],
+            italic: f.italic === true,
+          }))
+      }
     }
   } catch {
     // ignore corrupt storage
   }
 
   watch(
-    () => [fonts.favorites, fonts.recent],
+    () => [fonts.favorites, fonts.recent, fonts.addedFonts],
     () => {
       try {
         localStorage.setItem(
           KEY_FONTS,
-          JSON.stringify({ favorites: fonts.favorites, recent: fonts.recent }),
+          JSON.stringify({
+            favorites: fonts.favorites,
+            recent: fonts.recent,
+            added: fonts.addedFonts,
+          }),
         )
       } catch {
         // storage full / disabled — non-fatal

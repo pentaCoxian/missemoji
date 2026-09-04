@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import { createDefaultProject } from '#core/project/defaults'
 import { migrateProject } from '#core/project/migrate'
-import { getFontDescriptor } from '#core/fonts/catalog'
+import { useFontsStore } from '~/stores/fonts'
+import { getFontDescriptor, makeDescriptor } from '#core/fonts/catalog'
 import type {
   Align,
   AnimDirection,
@@ -42,7 +43,11 @@ export const useProjectStore = defineStore('project', {
       this.project.font.family = family
       // Snap the current weight to one this family actually offers, so the
       // render weight matches the loaded face (no faux-bold / fallback).
-      const desc = getFontDescriptor(family)
+      // `weightsOf` covers catalog fonts and fonts added by pasting a link.
+      const added = useFontsStore().addedFont(family)
+      const desc =
+        getFontDescriptor(family) ??
+        (added ? makeDescriptor(family, { weights: added.weights, italic: added.italic }) : null)
       // Only families with real italic faces keep an italic style.
       if (desc && !desc.italic) this.project.font.style = 'normal'
       if (desc && !desc.weights.includes(this.project.font.weight)) {
