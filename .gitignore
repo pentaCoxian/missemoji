@@ -4,6 +4,9 @@
 .data/
 dist
 
+# Cloudflare (wrangler local dev cache; `nuxt build` output goes to dist/)
+.wrangler/
+
 # deps
 node_modules/
 

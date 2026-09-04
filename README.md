@@ -140,6 +140,34 @@ npm run wasm:build                # -> wasm/apng-encoder/pkg/
 `pkg-node/` (a `--target nodejs` build, gitignored) enables the wasm round-trip
 test in `core/export/apng/wasmBackend.test.ts`; the test is skipped when absent.
 
+## Deploying
+
+### Cloudflare Pages (recommended)
+
+Verified end to end against Cloudflare's own runtime (`wrangler pages dev`):
+the SPA, both Web Workers, the Rust→WASM encoder and the font proxy all work.
+
+| Setting | Value |
+|---|---|
+| Build command | `npx nuxt build` |
+| Build output directory | `dist` |
+| Environment variable | `NITRO_PRESET=cloudflare_pages` |
+| Node version | 22 or 24 (`NODE_VERSION`) |
+
+Nitro emits `_routes.json` so only `/` and `/api/font-css` reach the Worker —
+everything under `/_nuxt/*` is served as a static asset. The Worker bundle is
+~0.2 MB gzipped, well inside the 1 MB free-plan limit; the 100 KB WASM encoder
+ships as a client asset, not in the Worker.
+
+### Any static host
+
+`npm run generate` produces `.output/public`, which needs no server. The cost
+is the font proxy: without it the app falls back to injecting a
+`<link rel="stylesheet">`, whose faces a Web Worker cannot use, so rendering
+moves to the main thread (the preview then reads "main-thread renderer").
+Output is identical, but a heavy animation will feel less smooth while
+rendering. Prefer a deploy that can run the one API route.
+
 ## Fonts (CORS note)
 
 `fonts.googleapis.com/css2` does not send CORS headers, so the browser can't
