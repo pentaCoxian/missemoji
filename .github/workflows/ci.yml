@@ -2,14 +2,19 @@ name: CI
 
 on:
   push:
-    branches: [master, main]
+    # NOT master/main: pushes there already run these checks inside the
+    # Deploy workflow's `ci` job, and the duplicate standalone run used to
+    # cancel it (same concurrency group), killing the deploy.
+    branches-ignore: [master, main]
   pull_request:
   # let the deploy workflow reuse these checks instead of duplicating them
   workflow_call:
 
 concurrency:
-  # a new push supersedes an in-flight run of the same ref
-  group: ci-${{ github.ref }}
+  # a new push supersedes an in-flight run of the same ref. github.workflow
+  # is the CALLER's name under workflow_call, so a Deploy-embedded run can
+  # never share a group with (and cancel) a standalone CI run.
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
