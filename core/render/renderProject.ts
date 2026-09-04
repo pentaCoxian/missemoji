@@ -14,6 +14,7 @@ import { paintStrokes } from '../effects/stroke'
 import { paintFill } from '../effects/fill'
 import { blurredCopy } from '../effects/blur'
 import { downscaleTo } from './downscale'
+import { fractionToPx, styleBasis } from '../project/units'
 
 export interface RenderOptions {
   /** A resolved layout (final px). */
@@ -50,7 +51,7 @@ export function renderProjectFrame(project: EmojiProject, opts: RenderOptions): 
   const target = needsComposite ? createSurface(renderW, renderH) : surface
 
   // --- background: static under motion, fades with the layer ---
-  paintBackground(target.ctx, project.style.background, renderW, renderH, scale)
+  paintBackground(target.ctx, project.style.background, renderW, renderH)
 
   // --- emoji layer under the whole-frame transform ---
   target.ctx.save()
@@ -80,6 +81,10 @@ function paintEmojiLayer(
 ) {
   const fullBox = { x: 0, y: 0, w: renderW, h: renderH }
 
+  // Style geometry is a fraction of canvas size: resolve it to RENDER px once,
+  // so every effect below is proportional at any export size.
+  const stylePx = styleBasis(renderW, renderH)
+
   // Place text geometry once (plus this frame's per-character motion); reused
   // by every pass for perfect registration.
   let placement = applyPerChar(
@@ -90,23 +95,30 @@ function paintEmojiLayer(
   )
   if (frame.tile) placement = tilePlacement(placement, frame.tile, renderW)
 
-  paintShadows(ctx, project.font, placement, project.style.shadows, scale)
+  const shadows = project.style.shadows.map((s) => ({
+    ...s,
+    blur: fractionToPx(s.blur, stylePx),
+    offsetX: fractionToPx(s.offsetX, stylePx),
+    offsetY: fractionToPx(s.offsetY, stylePx),
+  }))
+  paintShadows(ctx, project.font, placement, shadows)
 
   const glows = project.style.glows.map((g) => ({
     ...g,
+    radius: fractionToPx(g.radius, stylePx),
     intensity: g.intensity * frame.paint.glowIntensity,
   }))
-  paintGlows(ctx, project.font, placement, glows, scale)
+  paintGlows(ctx, project.font, placement, glows)
 
   // Strokes + fill are drawn under ONE block stretch so the glyph shapes and
   // the fill gradient pack the square coherently (per-letter aspect packing).
   // Shadow/glow apply the same stretch on their own temp surfaces.
   const strokes = project.style.strokes.map((s) => ({
     ...s,
-    width: s.width * frame.paint.strokeWidthMul,
+    width: fractionToPx(s.width, stylePx) * frame.paint.strokeWidthMul,
   }))
   withBlockStretch(ctx, placement, fullBox, () => {
-    paintStrokes(ctx, project.font, placement, strokes, scale)
+    paintStrokes(ctx, project.font, placement, strokes)
     paintFill(ctx, project.font, placement, project.style.fill, frame.paint)
   })
 }

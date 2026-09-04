@@ -5,6 +5,7 @@ import { renderProjectFrame } from './renderProject'
 import { solveLayout } from '../layout/solve'
 import { getAlphaBounds } from '../layout/pixelBounds'
 import { createDefaultProject } from '../project/defaults'
+import { refPxToFraction } from '../project/units'
 import { sampleFrameState } from '../animation/sampleAnimation'
 import { computeOvershoot } from '../animation/overshoot'
 import { IDENTITY_PAINT, IDENTITY_TRANSFORM, type FrameState } from '../animation/model'
@@ -134,7 +135,12 @@ describe('background layer', () => {
     expect(solidOut.rgba[3]).toBe(255)
 
     const blob = baseProject('A')
-    blob.style.background = { type: 'blob', color: '#3366ff', radius: 24, padding: 8 }
+    blob.style.background = {
+      type: 'blob',
+      color: '#3366ff',
+      radius: refPxToFraction(24),
+      padding: refPxToFraction(8),
+    }
     const blobOut = renderProjectFrame(blob, { layout: solveLayout(measure.ctx, blob) })
     expect(blobOut.rgba[3]).toBe(0) // corner, inside the padding
     const mid = ((blobOut.height / 2) * blobOut.width + 10) * 4 // x=10 > padding 8, mid row
@@ -145,7 +151,12 @@ describe('background layer', () => {
     const firstOpaqueX = (scale: number) => {
       const p = baseProject('A')
       p.export.renderScale = scale
-      p.style.background = { type: 'blob', color: '#3366ff', radius: 20, padding: 12 }
+      p.style.background = {
+        type: 'blob',
+        color: '#3366ff',
+        radius: refPxToFraction(20),
+        padding: refPxToFraction(12),
+      }
       const out = renderProjectFrame(p, { layout: solveLayout(createSurface(64, 64).ctx, p) })
       const y = Math.floor(out.height / 2)
       for (let x = 0; x < out.width; x++) if (out.rgba[(y * out.width + x) * 4 + 3]! > 128) return x
@@ -162,7 +173,7 @@ describe('motion reserve prevents clipping', () => {
     if (preset.clipsToFrame) continue
     it(`${preset.id}: no frame touches the canvas edge at default params`, () => {
       const project = baseProject('ABC!')
-      project.style.strokes = [{ width: 6, color: '#ffffff' }]
+      project.style.strokes = [{ width: refPxToFraction(6), color: '#ffffff' }]
       project.animation.enabled = true
       project.animation.preset = preset.id
       project.animation.fps = 12
@@ -286,7 +297,7 @@ describe('animation transforms reach the pixels', () => {
 
   it('opacity composites the whole layer once (max alpha ≈ opacity)', () => {
     const project = baseProject('A')
-    project.style.strokes = [{ width: 6, color: '#ffffff' }]
+    project.style.strokes = [{ width: refPxToFraction(6), color: '#ffffff' }]
     const frame: FrameState = {
       layer: { ...IDENTITY_TRANSFORM, opacity: 0.5 },
       paint: IDENTITY_PAINT,
@@ -300,7 +311,7 @@ describe('animation transforms reach the pixels', () => {
   it('glow intensity changes continuously (no integer-pass steps)', () => {
     const sums = [0.7, 0.75, 0.8].map((g) => {
       const project = baseProject('A')
-      project.style.glows = [{ color: '#ffe27a', radius: 8, intensity: 1 }]
+      project.style.glows = [{ color: '#ffe27a', radius: refPxToFraction(8), intensity: 1 }]
       const frame: FrameState = {
         layer: IDENTITY_TRANSFORM,
         paint: { ...IDENTITY_PAINT, glowIntensity: g },

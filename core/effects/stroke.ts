@@ -9,14 +9,16 @@ import { paintPlacedText } from '../render/renderTextLayer'
  * round joins to avoid spikes (spec §15). Stroke widths are in render px.
  *
  * Note canvas strokeText centers the stroke on the glyph path, so the visible
- * outer extent is width/2 — matched by computeSafeMargins (stroke/2).
+ * outer extent is `width` after the 2× below — matched by computeSafeMargins.
+ *
+ * `strokes[].width` is in RENDER px here: the caller resolved the stored
+ * canvas-size fraction (see core/project/units.ts).
  */
 export function paintStrokes(
   ctx: Ctx2D,
   font: FontSpec,
   placement: TextPlacement,
   strokes: StrokeSpec[],
-  scale: number,
 ) {
   if (strokes.length === 0) return
 
@@ -29,7 +31,7 @@ export function paintStrokes(
   const ordered = [...strokes].sort((a, b) => b.width - a.width)
   for (const s of ordered) {
     ctx.strokeStyle = s.color
-    ctx.lineWidth = s.width * 2 * scale
+    ctx.lineWidth = s.width * 2
     paintPlacedText(ctx, font, placement, 'stroke')
   }
 }

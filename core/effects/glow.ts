@@ -7,14 +7,16 @@ import { blurredCopy } from './blur'
 /**
  * Render glow layers under the text. Each glow draws a blurred, tinted copy of
  * the text silhouette and composites it additively for a luminous look
- * (spec §9 step 5). radius/intensity from the spec; radius scaled to render px.
+ * (spec §9 step 5).
+ *
+ * `glows[].radius` is in RENDER px here: the caller resolved the stored
+ * canvas-size fraction (see core/project/units.ts).
  */
 export function paintGlows(
   destCtx: Ctx2D,
   font: FontSpec,
   placement: TextPlacement,
   glows: GlowSpec[],
-  scale: number,
 ) {
   if (glows.length === 0) return
 
@@ -23,7 +25,7 @@ export function paintGlows(
 
   for (const glow of glows) {
     if (glow.radius <= 0 || glow.intensity <= 0) continue
-    const radiusPx = glow.radius * scale
+    const radiusPx = glow.radius
 
     // Draw the silhouette to a temp surface, then blur it.
     const tmp = createSurface(w, h)

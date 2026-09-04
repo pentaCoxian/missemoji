@@ -1,4 +1,5 @@
 import { createDefaultProject } from './defaults'
+import { pxToFraction, styleBasis } from './units'
 import {
   PROJECT_VERSION,
   type AnimDirection,
@@ -21,6 +22,11 @@ import {
  * validates; unknown keys are dropped, invalid values fall back to defaults.
  * This is what makes older projects (v1: no direction/hold/phase, an unused
  * `layout.autoLineBreak`, `webp`/`zip` export formats) load cleanly.
+ *
+ * Version 3 changed style geometry from pixels to fractions of canvas size, so
+ * a v1/v2 project's lengths are divided by ITS canvas size — an outline that
+ * was 6 px on a 128 px emoji becomes 6/128, which still renders as 6 px there
+ * and as 12 px at 256. See core/project/units.ts.
  */
 export class ProjectMigrationError extends Error {
   constructor(message: string) {
@@ -41,10 +47,34 @@ const oneOf = <T extends string>(v: unknown, list: readonly T[], def: T): T =>
 const color = (v: unknown, def: string): string =>
   typeof v === 'string' && v.length > 0 && v.length <= 64 ? v : def
 
+/** Widest style length we accept, as a fraction of canvas size. */
+const MAX_LEN = 1
+
+/**
+ * Read a style LENGTH: pre-v3 values are pixels (divided by `px`, the project's
+ * canvas size), v3+ values are already fractions (`px` is 1).
+ */
+function len(v: unknown, def: number, px: number, min = 0, max = MAX_LEN): number {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return def
+  return Math.min(max, Math.max(min, pxToFraction(v, px)))
+}
+
 const LAYOUT_MODES: LayoutMode[] = ['fit', 'fill', 'safe', 'compact', 'jp-balanced', 'impact']
 const DIRECTIONS: AnimDirection[] = ['forward', 'reverse', 'pingpong']
 const FORMATS: ExportFormat[] = ['png', 'apng', 'gif']
 const OPTIMIZE: OptimizeFor[] = ['quality', 'balanced', 'size']
+
+/** Divisor that turns a legacy pixel length into a fraction (1 when already v3). */
+function legacyScale(input: Obj, exp: Obj): number {
+  const version = typeof input.version === 'number' ? input.version : 0
+  if (version >= 3) return 1
+  const size = isObj(input.size) ? input.size : {}
+  const basis = styleBasis(
+    num(exp.finalWidth, num(size.width, 128, 1), 1),
+    num(exp.finalHeight, num(size.height, 128, 1), 1),
+  )
+  return basis > 0 ? basis : 128
+}
 
 function migrateFill(v: unknown, def: FillSpec): FillSpec {
   if (!isObj(v)) return def
@@ -58,41 +88,41 @@ function migrateFill(v: unknown, def: FillSpec): FillSpec {
   return def
 }
 
-function migrateStrokes(v: unknown, def: StrokeSpec[]): StrokeSpec[] {
+function migrateStrokes(v: unknown, def: StrokeSpec[], px: number): StrokeSpec[] {
   if (!Array.isArray(v)) return def
   return v
     .filter(isObj)
-    .map((s) => ({ width: num(s.width, 6, 0, 64), color: color(s.color, '#ffffff') }))
+    .map((s) => ({ width: len(s.width, def[0]?.width ?? 0, px), color: color(s.color, '#ffffff') }))
 }
 
-function migrateShadows(v: unknown, def: ShadowSpec[]): ShadowSpec[] {
+function migrateShadows(v: unknown, def: ShadowSpec[], px: number): ShadowSpec[] {
   if (!Array.isArray(v)) return def
   return v.filter(isObj).map((s) => ({
     color: color(s.color, '#00000088'),
-    blur: num(s.blur, 6, 0, 64),
-    offsetX: num(s.offsetX, 0, -64, 64),
-    offsetY: num(s.offsetY, 4, -64, 64),
+    blur: len(s.blur, 0, px),
+    offsetX: len(s.offsetX, 0, px, -MAX_LEN),
+    offsetY: len(s.offsetY, 0, px, -MAX_LEN),
   }))
 }
 
-function migrateGlows(v: unknown, def: GlowSpec[]): GlowSpec[] {
+function migrateGlows(v: unknown, def: GlowSpec[], px: number): GlowSpec[] {
   if (!Array.isArray(v)) return def
   return v.filter(isObj).map((g) => ({
     color: color(g.color, '#ffe27a'),
-    radius: num(g.radius, 8, 0, 64),
+    radius: len(g.radius, 0, px),
     intensity: num(g.intensity, 0.8, 0, 2),
   }))
 }
 
-function migrateBackground(v: unknown): BackgroundSpec | null {
+function migrateBackground(v: unknown, px: number): BackgroundSpec | null {
   if (!isObj(v)) return null
   if (v.type === 'solid') return { type: 'solid', color: color(v.color, '#ffffff') }
   if (v.type === 'blob') {
     return {
       type: 'blob',
       color: color(v.color, '#ffffff'),
-      radius: num(v.radius, 24, 0, 128),
-      padding: num(v.padding, 4, 0, 64),
+      radius: len(v.radius, 24 / 128, px),
+      padding: len(v.padding, 4 / 128, px),
     }
   }
   return null
@@ -119,6 +149,8 @@ export function migrateProject(input: unknown): EmojiProject {
 
   const finalWidth = num(exp.finalWidth, d.export.finalWidth, 16, 1024)
   const finalHeight = num(exp.finalHeight, d.export.finalHeight, 16, 1024)
+  // pre-v3 style lengths are pixels on the project's own canvas; v3+ are fractions
+  const px = legacyScale(input, exp)
 
   const variableAxes = isObj(font.variableAxes)
     ? Object.fromEntries(
@@ -136,7 +168,7 @@ export function migrateProject(input: unknown): EmojiProject {
       family: str(font.family, d.font.family),
       weight: num(font.weight, d.font.weight, 100, 900),
       style: oneOf(font.style, ['normal', 'italic'] as const, d.font.style),
-      letterSpacing: num(font.letterSpacing, d.font.letterSpacing, -50, 100),
+      letterSpacing: len(font.letterSpacing, d.font.letterSpacing, px, -MAX_LEN),
       lineHeight: num(font.lineHeight, d.font.lineHeight, 0.5, 3),
       ...(variableAxes && Object.keys(variableAxes).length ? { variableAxes } : {}),
     },
@@ -148,15 +180,15 @@ export function migrateProject(input: unknown): EmojiProject {
         ['middle', 'top', 'bottom'] as const,
         d.layout.verticalAlign,
       ),
-      padding: num(layout.padding, d.layout.padding, 0, 64),
+      padding: len(layout.padding, d.layout.padding, px),
       manualLineBreaks: bool(layout.manualLineBreaks, d.layout.manualLineBreaks),
     },
     style: {
       fill: migrateFill(style.fill, d.style.fill),
-      strokes: migrateStrokes(style.strokes, d.style.strokes),
-      shadows: migrateShadows(style.shadows, d.style.shadows),
-      glows: migrateGlows(style.glows, d.style.glows),
-      background: migrateBackground(style.background),
+      strokes: migrateStrokes(style.strokes, d.style.strokes, px),
+      shadows: migrateShadows(style.shadows, d.style.shadows, px),
+      glows: migrateGlows(style.glows, d.style.glows, px),
+      background: migrateBackground(style.background, px),
       decorations: Array.isArray(style.decorations)
         ? style.decorations
             .filter(isObj)

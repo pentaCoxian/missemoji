@@ -7,6 +7,7 @@ import ColorPicker from '~/components/controls/ColorPicker.vue'
 import AppSlider from '~/components/controls/AppSlider.vue'
 import ToggleSwitch from '~/components/controls/ToggleSwitch.vue'
 import SegmentedControl from '~/components/controls/SegmentedControl.vue'
+import { fractionToRefPx, refPxToFraction } from '#core/project/units'
 import BackgroundSection from '~/components/panels/style/BackgroundSection.vue'
 
 const store = useProjectStore()
@@ -58,9 +59,9 @@ const strokeCount = computed(() => project.value.style.strokes.length)
 function setStrokeCount(n: number) {
   const cur = project.value.style.strokes.length
   if (n > cur) {
-    if (cur === 0) store.addStroke({ width: 6, color: '#ffffff' })
+    if (cur === 0) store.addStroke({ width: refPxToFraction(6), color: '#ffffff' })
     if (n === 2 && project.value.style.strokes.length === 1)
-      store.addStroke({ width: 10, color: '#000000' })
+      store.addStroke({ width: refPxToFraction(10), color: '#000000' })
   } else {
     while (project.value.style.strokes.length > n)
       store.removeStroke(project.value.style.strokes.length - 1)
@@ -69,13 +70,19 @@ function setStrokeCount(n: number) {
 
 const hasShadow = computed(() => project.value.style.shadows.length > 0)
 function toggleShadow(on: boolean) {
-  if (on) store.addShadow({ color: '#00000088', blur: 6, offsetX: 0, offsetY: 4 })
+  if (on)
+    store.addShadow({
+      color: '#00000088',
+      blur: refPxToFraction(6),
+      offsetX: 0,
+      offsetY: refPxToFraction(4),
+    })
   else store.removeShadow(0)
 }
 
 const hasGlow = computed(() => project.value.style.glows.length > 0)
 function toggleGlow(on: boolean) {
-  if (on) store.addGlow({ color: '#ffe27a', radius: 8, intensity: 0.8 })
+  if (on) store.addGlow({ color: '#ffe27a', radius: refPxToFraction(8), intensity: 0.8 })
   else store.removeGlow(0)
 }
 
@@ -146,12 +153,12 @@ const strokeCounts = [
           @update:model-value="store.updateStroke(i, { color: $event })"
         />
         <AppSlider
-          :model-value="s.width"
+          :model-value="fractionToRefPx(s.width)"
           :min="1"
           :max="24"
           label="Width"
           suffix="px"
-          @update:model-value="store.updateStroke(i, { width: $event })"
+          @update:model-value="store.updateStroke(i, { width: refPxToFraction($event) })"
         />
       </div>
     </PanelSection>
@@ -169,20 +176,20 @@ const strokeCounts = [
           @update:model-value="store.updateShadow(0, { color: $event })"
         />
         <AppSlider
-          :model-value="shadow0.blur"
+          :model-value="fractionToRefPx(shadow0.blur)"
           :min="0"
           :max="24"
           label="Blur"
           suffix="px"
-          @update:model-value="store.updateShadow(0, { blur: $event })"
+          @update:model-value="store.updateShadow(0, { blur: refPxToFraction($event) })"
         />
         <AppSlider
-          :model-value="shadow0.offsetY"
+          :model-value="fractionToRefPx(shadow0.offsetY)"
           :min="-16"
           :max="16"
           label="Offset Y"
           suffix="px"
-          @update:model-value="store.updateShadow(0, { offsetY: $event })"
+          @update:model-value="store.updateShadow(0, { offsetY: refPxToFraction($event) })"
         />
       </template>
     </PanelSection>
@@ -196,12 +203,12 @@ const strokeCounts = [
           @update:model-value="store.updateGlow(0, { color: $event })"
         />
         <AppSlider
-          :model-value="glow0.radius"
+          :model-value="fractionToRefPx(glow0.radius)"
           :min="0"
           :max="32"
           label="Radius"
           suffix="px"
-          @update:model-value="store.updateGlow(0, { radius: $event })"
+          @update:model-value="store.updateGlow(0, { radius: refPxToFraction($event) })"
         />
       </template>
     </PanelSection>

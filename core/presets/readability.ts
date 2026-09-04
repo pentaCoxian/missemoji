@@ -1,5 +1,6 @@
 import type { EmojiProject } from '../project/schema'
 import type { LayoutResult } from '../layout/types'
+import { fractionToPx, styleBasis } from '../project/units'
 
 /**
  * Readability scoring (spec §16). Produces a 0..1 penalty (higher = worse) used
@@ -20,7 +21,12 @@ export function readabilityPenalty(
   if (effectivePx < 6) penalty += (6 - effectivePx) / 6 // up to ~1
 
   // Thick outline relative to glyph size closes counters.
-  const maxStroke = project.style.strokes.reduce((m, s) => Math.max(m, s.width), 0)
+  // stroke width is a fraction of canvas size; the fitted size is in final px
+  const basis = styleBasis(project.export.finalWidth, project.export.finalHeight)
+  const maxStroke = project.style.strokes.reduce(
+    (m, s) => Math.max(m, fractionToPx(s.width, basis)),
+    0,
+  )
   if (fit.fontSize > 0) {
     const strokeRatio = maxStroke / fit.fontSize
     if (strokeRatio > 0.2) penalty += Math.min(0.5, (strokeRatio - 0.2) * 2)

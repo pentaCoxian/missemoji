@@ -1,19 +1,20 @@
 import type { Ctx2D } from './renderContext'
 import type { BackgroundSpec } from '../project/schema'
+import { fractionToPx, styleBasis } from '../project/units'
 
 /**
  * Draw the background layer (spec §9 step 2). Decorative shapes (step 3) are a
  * Phase 3+ subset and land later; the seam is here.
  *
- * @param scale renderScale — blob radius / padding are in FINAL px like every
- *              other style value, so the look is independent of render scale.
+ * The blob's radius / padding are FRACTIONS of canvas size (like every other
+ * style length, see core/project/units.ts), so the look is identical at any
+ * render scale and any export size.
  */
 export function paintBackground(
   ctx: Ctx2D,
   bg: BackgroundSpec | null,
   width: number,
   height: number,
-  scale = 1,
 ) {
   if (!bg) return
 
@@ -24,12 +25,13 @@ export function paintBackground(
   }
 
   // Rounded blob background.
-  const pad = bg.padding * scale
+  const basis = styleBasis(width, height)
+  const pad = fractionToPx(bg.padding, basis)
   const x = pad
   const y = pad
   const w = width - pad * 2
   const h = height - pad * 2
-  const r = Math.min(bg.radius * scale, w / 2, h / 2)
+  const r = Math.min(fractionToPx(bg.radius, basis), w / 2, h / 2)
 
   ctx.fillStyle = bg.color
   roundRect(ctx, x, y, w, h, r)

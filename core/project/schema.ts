@@ -27,20 +27,32 @@ export type FillSpec =
       angle: number
     }
 
+/**
+ * GEOMETRY UNITS: every length in a StyleSpec / LayoutSpec below is a FRACTION
+ * of the emoji canvas size (see core/project/units.ts), never a pixel count.
+ * That is what makes a 256×256 export a true 2× enlargement of the 128×128 one
+ * — same relative point size, same relative outline thickness. The UI converts
+ * to and from pixels at a 128 px reference.
+ */
+
 export interface StrokeSpec {
+  /** outline width, as a fraction of canvas size */
   width: number
   color: string
 }
 
 export interface ShadowSpec {
   color: string
+  /** blur radius, as a fraction of canvas size */
   blur: number
+  /** offsets, as fractions of canvas size */
   offsetX: number
   offsetY: number
 }
 
 export interface GlowSpec {
   color: string
+  /** glow reach, as a fraction of canvas size */
   radius: number
   /** 0..1 intensity multiplier (animatable). */
   intensity: number
@@ -48,6 +60,7 @@ export interface GlowSpec {
 
 export type BackgroundSpec =
   | { type: 'solid'; color: string }
+  /** `radius` and `padding` are fractions of canvas size */
   | { type: 'blob'; color: string; radius: number; padding: number }
 
 /** Decorations are defined now but only a subset renders before Phase 4. */
@@ -60,7 +73,9 @@ export interface FontSpec {
   family: string
   weight: number
   style: 'normal' | 'italic'
+  /** letter spacing, as a fraction of canvas size */
   letterSpacing: number
+  /** multiple of the font size (already resolution-independent) */
   lineHeight: number
   variableAxes?: Record<string, number>
 }
@@ -69,6 +84,7 @@ export interface LayoutSpec {
   mode: LayoutMode
   align: Align
   verticalAlign: VerticalAlign
+  /** inner margin, as a fraction of canvas size */
   padding: number
   manualLineBreaks: boolean
 }
@@ -109,7 +125,7 @@ export interface ExportSpec {
 }
 
 /** Bump when the shape changes; core/project/migrate.ts upgrades old JSON. */
-export const PROJECT_VERSION = 2
+export const PROJECT_VERSION = 3
 
 export interface EmojiProject {
   version: typeof PROJECT_VERSION
