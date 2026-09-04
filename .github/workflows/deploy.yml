@@ -1,0 +1,78 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master, main]
+  # deploy a fixed commit on demand (rollback, or a retry after a Cloudflare blip)
+  workflow_dispatch:
+
+concurrency:
+  # never let two deploys race; let an in-flight one finish rather than
+  # cancelling it half-uploaded
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # Gate the deploy on the same checks a PR gets: no green CI, no deploy.
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Cloudflare Pages
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.deployment-url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Rebuild here rather than passing dist/ between jobs: the build is a
+      # couple of minutes and an artifact round-trip of ~800 files is not
+      # meaningfully faster, while a fresh build keeps this job self-contained.
+      - name: Build (Cloudflare Pages preset)
+        run: npm run build:cf
+
+      # `pages deploy` fails if the project does not exist yet, which is the
+      # case on the very first run. Create it once, ignoring the error when it
+      # is already there, so a fresh account needs no dashboard clicking.
+      - name: Ensure the Pages project exists
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if npx wrangler pages project list | grep -qw missemoji; then
+            echo "Project 'missemoji' already exists."
+          else
+            echo "Creating Pages project 'missemoji'…"
+            npx wrangler pages project create missemoji \
+              --production-branch="${{ github.ref_name }}"
+          fi
+
+      - name: Deploy to Cloudflare Pages
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # wrangler.toml supplies the project name and output directory
+          command: pages deploy dist --branch=${{ github.ref_name }}
+
+      - name: Summarise
+        run: |
+          echo "### Deployed to Cloudflare Pages" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit: \`${GITHUB_SHA::7}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- URL: ${{ steps.deploy.outputs.deployment-url }}" >> "$GITHUB_STEP_SUMMARY"

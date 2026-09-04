@@ -1,0 +1,14 @@
+# Cloudflare Pages deployment for missemoji.
+#
+# The build is produced by `npm run build:cf` (the cloudflare_pages Nitro
+# preset), which writes `dist/` containing the static SPA plus `_worker.js`
+# for the one server route, /api/font-css. That route exists because
+# fonts.googleapis.com sends no CORS headers, so the browser cannot fetch the
+# stylesheet it needs to build FontFace objects for canvas — see the README.
+#
+# Nitro also emits _routes.json, so only `/` and `/api/font-css` invoke the
+# Worker; everything under /_nuxt/* is served as a static asset.
+
+name = "missemoji"
+compatibility_date = "2025-06-01"
+pages_build_output_dir = "dist"

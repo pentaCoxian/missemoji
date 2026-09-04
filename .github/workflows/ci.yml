@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  # let the deploy workflow reuse these checks instead of duplicating them
+  workflow_call:
+
+concurrency:
+  # a new push supersedes an in-flight run of the same ref
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          # Nuxt 4.4 requires ^22.12 || ^24.11 || >=26; Node 23 is NOT supported
+          node-version: 24
+          cache: npm
+
+      # `npm ci` installs exactly the lockfile, and runs `nuxt prepare`
+      # (postinstall) which generates .nuxt/tsconfig.*.json — typecheck and
+      # lint both need those to exist.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
+      # vue-tsc -b across app/, core/, workers/ and server/
+      - name: Typecheck
+        run: npm run typecheck
+
+      # core/ unit tests plus headless render/export pixel tests
+      # (@napi-rs/canvas), so encoder output is verified, not just types
+      - name: Test
+        run: npm test
+
+      # the Cloudflare build specifically: catches preset-only breakage
+      # (a Node-only API reaching the Worker bundle, for instance)
+      - name: Build (Cloudflare Pages preset)
+        run: npm run build:cf
+
+      - name: Check Worker bundle size
+        # Pages caps the Worker at 1 MB gzipped on the free plan. The bundle is
+        # ~0.2 MB today; fail loudly if something bulky lands in it rather than
+        # discovering it at deploy time.
+        run: |
+          # -type f and the grouped -o matter: an ungrouped -o also matches
+          # the _worker.js DIRECTORY itself, which makes cat noisy
+          bytes=$(find dist/_worker.js -type f \( -name '*.js' -o -name '*.mjs' \) \
+            ! -name '*.map' | xargs cat | gzip -c | wc -c)
+          mb=$(awk "BEGIN { printf \"%.2f\", $bytes/1048576 }")
+          echo "Worker bundle: ${mb} MB gzipped"
+          if [ "$bytes" -gt 1048576 ]; then
+            echo "::error::Worker bundle ${mb} MB exceeds Cloudflare's 1 MB limit"
+            exit 1
+          fi
