@@ -54,18 +54,16 @@ describe('vertical alignment centres the real ink', () => {
     ['three lines', (p) => (p.text = '沈黙\nは\n金')],
     ['a tall line height', (p) => (p.font.lineHeight = 1.4)],
     ['a tight line height', (p) => (p.font.lineHeight = 0.85)],
-    // no descenders: the case the `|| fallback` used to break
-    ['latin without descenders', (p) => ((p.text = 'ABC'), (p.font.family = 'sans-serif'))],
-    ['latin with a descender', (p) => ((p.text = 'Ag'), (p.font.family = 'sans-serif'))],
-    [
-      'latin under heavy stretch',
-      (p) => {
-        p.text = 'ABC'
-        p.font.family = 'sans-serif'
-        p.layout.mode = 'fill'
-      },
-    ],
   ]
+
+  /**
+   * `sans-serif` resolves to a different face per platform, and the faces
+   * disagree about what "ABC" measures: some report a descent of 0, some a small
+   * positive one, some a negative one (ink stopping above the baseline). Naming
+   * families explicitly means CI exercises the same geometry a developer does —
+   * the earlier version of this test passed locally and failed on CI's fonts.
+   */
+  const LATIN_FAMILIES = ['sans-serif', 'Arial', 'Helvetica', 'DejaVu Sans', 'Liberation Sans']
 
   for (const [label, mutate] of cases) {
     it(`${label}: top and bottom gaps match`, () => {
@@ -75,6 +73,26 @@ describe('vertical alignment centres the real ink', () => {
       const tolerance = Math.ceil(height * 0.03)
       expect(Math.abs(top - bottom)).toBeLessThanOrEqual(tolerance)
     })
+  }
+
+  // Latin text, across faces that report descent differently. "ABC" has no ink
+  // below the baseline, which is exactly what a `|| fallback` mis-reads as a
+  // missing metric.
+  for (const family of LATIN_FAMILIES) {
+    for (const [what, text, mode] of [
+      ['without descenders', 'ABC', 'fit'],
+      ['with a descender', 'Ag', 'fit'],
+      ['under heavy stretch', 'ABC', 'fill'],
+    ] as [string, string, EmojiProject['layout']['mode']][]) {
+      it(`${family} ${what}: top and bottom gaps match`, () => {
+        const { top, bottom, height } = inkGaps((p) => {
+          p.text = text
+          p.font.family = family
+          p.layout.mode = mode
+        })
+        expect(Math.abs(top - bottom)).toBeLessThanOrEqual(Math.ceil(height * 0.04))
+      })
+    }
   }
 
   it('top alignment hugs the top, bottom alignment hugs the bottom', () => {

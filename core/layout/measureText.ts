@@ -7,6 +7,12 @@ export function cssFont(font: FontSpec, sizePx: number): string {
   return `${style}${font.weight} ${sizePx}px '${font.family}', sans-serif`
 }
 
+/** First argument that is a real number; lets a legitimate 0 through. */
+function firstFinite(...values: (number | undefined)[]): number {
+  for (const v of values) if (typeof v === 'number' && Number.isFinite(v)) return v
+  return 0
+}
+
 export interface TextMetricsResult {
   width: number
   ascent: number
@@ -30,21 +36,33 @@ export function measureRun(
   ctx.textBaseline = 'alphabetic'
 
   let width = 0
-  let ascent = 0
-  let descent = 0
+  // start below any real metric so a run whose ink stops ABOVE the baseline
+  // (a negative descent, e.g. "ABC" in some faces) is represented honestly
+  // rather than floored to 0, which would over-state the block's height
+  let ascent = -Infinity
+  let descent = -Infinity
 
   for (const c of clusters) {
     const m = ctx.measureText(c)
     width += m.width + letterSpacingPx
-    const a = m.actualBoundingBoxAscent || m.fontBoundingBoxAscent || sizePx * 0.8
-    const d = m.actualBoundingBoxDescent || m.fontBoundingBoxDescent || sizePx * 0.2
+    // `??`, never `||`: a glyph that sits exactly on the baseline reports an
+    // actual descent of 0 (Arial does this for "A" and "B"), and `||` would
+    // mistake that for a missing metric and substitute the FONT descent —
+    // ~21% of the size — inflating the measured block and pushing text off
+    // centre. Only fall back when the metric is genuinely absent.
+    const a = firstFinite(m.actualBoundingBoxAscent, m.fontBoundingBoxAscent, sizePx * 0.8)
+    const d = firstFinite(m.actualBoundingBoxDescent, m.fontBoundingBoxDescent, sizePx * 0.2)
     if (a > ascent) ascent = a
     if (d > descent) descent = d
   }
   // Remove the trailing letter-spacing added after the last cluster.
   if (clusters.length > 0) width -= letterSpacingPx
 
-  return { width: Math.max(0, width), ascent, descent }
+  return {
+    width: Math.max(0, width),
+    ascent: Number.isFinite(ascent) ? ascent : 0,
+    descent: Number.isFinite(descent) ? descent : 0,
+  }
 }
 
 /**
