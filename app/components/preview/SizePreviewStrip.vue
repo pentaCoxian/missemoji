@@ -6,14 +6,14 @@ import { usePreviewFrames } from '~/composables/usePreviewFrames'
 
 /**
  * Actual-size preview strip (spec §16): the current preview bitmap drawn at
- * the real pixel sizes an emoji appears at on Misskey (24/48/72px in
+ * the real pixel sizes an emoji appears at on Misskey (24/32/48/72px in
  * reactions/timeline, plus full 128). Follows playback frame by frame.
  */
 const editor = useEditorStore()
 const { backgroundClass } = storeToRefs(editor)
 const { currentBitmap } = usePreviewFrames()
 
-const sizes = [24, 48, 72, 128]
+const sizes = [24, 32, 48, 72, 128]
 const canvases = new Map<number, HTMLCanvasElement>()
 
 function setCanvas(size: number, el: unknown) {
