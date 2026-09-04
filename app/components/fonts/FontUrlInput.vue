@@ -38,7 +38,11 @@ function submit() {
   }
   const first = result.requests[0]!
   store.setFontFamily(first.family)
-  if (first.weights.length) store.setFontWeight(first.weights[0]!)
+  // Prefer Regular when the link offers a range: a variable family starts at
+  // 100, and a hairline emoji is unreadable at Misskey's small sizes.
+  if (first.weights.length) {
+    store.setFontWeight(first.weights.includes(400) ? 400 : first.weights[0]!)
+  }
   added.value = result.requests.map((r) => r.family).join(', ')
   value.value = ''
 }
