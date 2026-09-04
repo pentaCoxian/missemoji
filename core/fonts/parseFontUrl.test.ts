@@ -26,10 +26,42 @@ describe('parseGoogleFontUrl', () => {
     ])
   })
 
-  it('takes the endpoints of a variable weight range', () => {
+  it('expands a variable weight range to the standard weights it covers', () => {
     expect(ok('https://fonts.googleapis.com/css2?family=Roboto:wght@100..900')[0]!.weights).toEqual(
-      [100, 900],
+      [100, 200, 300, 400, 500, 600, 700, 800, 900],
     )
+    // a narrower range only offers what it actually covers, endpoints included
+    expect(ok('https://fonts.googleapis.com/css2?family=Roboto:wght@350..600')[0]!.weights).toEqual(
+      [350, 400, 500, 600],
+    )
+  })
+
+  it('reads a share URL from the Share button', () => {
+    expect(ok('https://fonts.google.com/share?selection.family=M+PLUS+U:wght@100..900')).toEqual([
+      {
+        family: 'M PLUS U',
+        weights: [100, 200, 300, 400, 500, 600, 700, 800, 900],
+        italic: false,
+      },
+    ])
+  })
+
+  it('reads a share URL with several families and italics', () => {
+    const out = ok(
+      'https://fonts.google.com/share?selection.family=Inter:wght@400;700|Roboto:ital,wght@0,400;1,700',
+    )
+    expect(out).toEqual([
+      { family: 'Inter', weights: [400, 700], italic: false },
+      { family: 'Roboto', weights: [400, 700], italic: true },
+    ])
+  })
+
+  it('reads a share URL for a family with no axis', () => {
+    expect(ok('https://fonts.google.com/share?selection.family=Rampart+One')[0]).toEqual({
+      family: 'Rampart One',
+      weights: [],
+      italic: false,
+    })
   })
 
   it('returns every family in a multi-family URL', () => {

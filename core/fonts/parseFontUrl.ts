@@ -1,16 +1,20 @@
 /**
  * Parse what a user pastes from Google Fonts into a font request.
  *
- * Two shapes are accepted (both are things you can actually copy from the
+ * Three shapes are accepted (all are things you can actually copy from the
  * site):
- *   - a CSS2 share URL, from the "@import" / "<link>" snippet, e.g.
+ *   - a CSS2 URL, from the "@import" / "<link>" snippet, e.g.
  *     https://fonts.googleapis.com/css2?family=Rampart+One&display=swap
  *     https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;1,700
  *   - a specimen page URL from the address bar, e.g.
  *     https://fonts.google.com/specimen/Rampart+One
+ *   - a share URL from the "Share" button, which carries the selection in a
+ *     query parameter and separates families with `|`, e.g.
+ *     https://fonts.google.com/share?selection.family=M+PLUS+U:wght@100..900
  *
- * A CSS2 URL may name several families; all of them are returned. Weights and
- * italics are read from the `:wght@` / `:ital,wght@` axis when present.
+ * A URL may name several families; all of them are returned. Weights and
+ * italics are read from the `:wght@` / `:ital,wght@` axis when present; a
+ * variable range (`100..900`) expands to the standard weights it covers.
  */
 
 export interface ParsedFontRequest {
@@ -56,14 +60,36 @@ function parseAxis(spec: string): { weights: number[]; italic: boolean } {
   for (const tuple of tuples) {
     const parts = tuple.split(',')
     if (italIndex >= 0 && parts[italIndex] === '1') italic = true
-    // a variable-font range like `400..700` contributes its endpoints
     const raw = wghtIndex >= 0 ? parts[wghtIndex] : axes.length === 1 ? parts[0] : undefined
-    for (const piece of (raw ?? '').split('..')) {
-      const n = Number(piece)
-      if (Number.isFinite(n) && n >= 1 && n <= 1000) weights.add(Math.round(n))
-    }
+    for (const w of expandWeightSpec(raw ?? '')) weights.add(w)
   }
   return { weights: [...weights].sort((a, b) => a - b), italic }
+}
+
+/** The weights Google serves for a variable family, and that a UI can offer. */
+const STANDARD_WEIGHTS = [100, 200, 300, 400, 500, 600, 700, 800, 900]
+
+function validWeight(n: number): boolean {
+  return Number.isFinite(n) && n >= 1 && n <= 1000
+}
+
+/**
+ * Expand one weight spec into concrete weights: `700` is itself, while a
+ * variable range `100..900` becomes every standard weight it covers (plus its
+ * endpoints), so the weight picker offers the whole range rather than just the
+ * two extremes.
+ */
+function expandWeightSpec(spec: string): number[] {
+  const range = spec.split('..')
+  if (range.length === 1) {
+    const n = Number(range[0])
+    return validWeight(n) ? [Math.round(n)] : []
+  }
+  const lo = Number(range[0])
+  const hi = Number(range[range.length - 1])
+  if (!validWeight(lo) || !validWeight(hi) || hi < lo) return []
+  const inside = STANDARD_WEIGHTS.filter((w) => w >= lo && w <= hi)
+  return [...new Set([Math.round(lo), ...inside, Math.round(hi)])]
 }
 
 /** Parse one `family=` value: `Name` or `Name:axis@tuples`. */
@@ -99,6 +125,18 @@ export function parseGoogleFontUrl(input: string): ParseFontUrlResult {
   }
 
   if (SITE_HOSTS.has(url.hostname)) {
+    // The "Share" button's URL: ?selection.family=Name:axis@tuples, with `|`
+    // between families. searchParams has already turned `+` into spaces.
+    const selection = url.searchParams.get('selection.family')
+    if (selection) {
+      const requests = selection
+        .split('|')
+        .map((part) => parseFamilyParam(part))
+        .filter((r): r is ParsedFontRequest => !!r)
+      if (requests.length === 0) return { ok: false, error: 'no-family' }
+      return { ok: true, requests }
+    }
+
     // /specimen/Rampart+One, optionally with more path segments after it
     const parts = url.pathname.split('/').filter(Boolean)
     const i = parts.indexOf('specimen')

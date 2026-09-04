@@ -95,10 +95,13 @@ lengths by their own canvas size, so saved work keeps its exact look.
 
 ### Adding fonts
 
-Beyond the curated catalog you can paste either a font's specimen page URL
-(`fonts.google.com/specimen/Rampart+One`) or the CSS link from "Get font"
-(`fonts.googleapis.com/css2?family=Inter:wght@400;700`). Weights and italics
-named in the link are honoured. Added fonts persist across reloads — only the
+Beyond the curated catalog you can paste any of the three links Google Fonts
+gives you: a specimen page URL (`fonts.google.com/specimen/Rampart+One`), the
+CSS link from "Get font"
+(`fonts.googleapis.com/css2?family=Inter:wght@400;700`), or a Share link
+(`fonts.google.com/share?selection.family=M+PLUS+U:wght@100..900`). Weights and
+italics named in the link are honoured, and a variable range like `100..900`
+expands to every standard weight it covers. Added fonts persist across reloads — only the
 descriptor is stored, so they re-fetch from Google exactly like catalog fonts.
 Uploaded font *files* stay in memory for the session only.
 
