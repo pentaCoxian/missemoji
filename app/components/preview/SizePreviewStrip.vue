@@ -1,24 +1,56 @@
 <script setup lang="ts">
-import { watch, onMounted } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useEditorStore } from '~/stores/editor'
 import { usePreviewFrames } from '~/composables/usePreviewFrames'
 
 /**
- * Actual-size preview strip (spec §16): the current preview bitmap drawn at
- * the real pixel sizes an emoji appears at on Misskey (24/32/48/72px in
- * reactions/timeline, plus full 128). Follows playback frame by frame.
+ * Actual-size preview strip: the current preview bitmap at the CSS sizes a
+ * custom emoji really occupies on Misskey.
+ *
+ * Misskey serves reaction/MFM emoji through the media proxy at `height: 128`
+ * webp and displays them with `MkCustomEmoji`: `.normal { height: 1.25em }`
+ * inside a reaction chip whose font-size follows the chip size (`small` 1em,
+ * default 1.5em, `large` 2em) against a 14px root. So the real heights are
+ * ~17.5 / 26 / 35 CSS px — the browser is downscaling a 128px source, never
+ * showing it 1:1. Our rungs mirror those, plus 128 (the served source).
  */
 const editor = useEditorStore()
 const { backgroundClass } = storeToRefs(editor)
 const { currentBitmap } = usePreviewFrames()
 
-const sizes = [24, 32, 48, 72, 128]
+/** Misskey's own reaction/emoji display heights, in CSS px. */
+const sizes: { px: number; label: string }[] = [
+  { px: 18, label: 'reaction' },
+  { px: 26, label: 'in text' },
+  { px: 35, label: 'large' },
+  { px: 64, label: 'picker' },
+  { px: 128, label: 'source' },
+]
 // On phones the big rungs eat too much vertical space (and 128 nearly
 // duplicates the main preview), so only the small reaction/timeline sizes
 // stay; the full ladder returns from `sm` up.
-const MOBILE_MAX = 48
+const MOBILE_MAX = 35
 const canvases = new Map<number, HTMLCanvasElement>()
+
+// Match the device pixel ratio: a 32-CSS-px canvas with a 32px backing store
+// is upscaled by the browser on a retina screen, which is exactly the
+// pixelation Misskey does not show (it downsamples a 128px source instead).
+const dpr = ref(1)
+let mq: MediaQueryList | null = null
+
+function watchDpr() {
+  if (typeof window === 'undefined') return
+  dpr.value = window.devicePixelRatio || 1
+  mq?.removeEventListener('change', onDprChange)
+  mq = window.matchMedia(`(resolution: ${dpr.value}dppx)`)
+  mq.addEventListener('change', onDprChange)
+}
+
+function onDprChange() {
+  watchDpr()
+  draw()
+}
 
 function setCanvas(size: number, el: unknown) {
   if (el instanceof HTMLCanvasElement) canvases.set(size, el)
@@ -27,46 +59,51 @@ function setCanvas(size: number, el: unknown) {
 
 function draw() {
   const bmp = currentBitmap.value
+  const ratio = dpr.value
   for (const [size, canvas] of canvases) {
-    if (canvas.width !== size) {
-      canvas.width = size
-      canvas.height = size
+    const px = Math.round(size * ratio)
+    if (canvas.width !== px) {
+      canvas.width = px
+      canvas.height = px
     }
     const ctx = canvas.getContext('2d')
     if (!ctx) continue
-    ctx.clearRect(0, 0, size, size)
+    ctx.clearRect(0, 0, px, px)
     if (!bmp) continue
     ctx.imageSmoothingEnabled = true
     ctx.imageSmoothingQuality = 'high'
-    ctx.drawImage(bmp, 0, 0, size, size)
+    ctx.drawImage(bmp, 0, 0, px, px)
   }
 }
 
 watch(currentBitmap, draw)
-onMounted(draw)
+watch(dpr, draw)
+onMounted(() => {
+  watchDpr()
+  draw()
+})
+onBeforeUnmount(() => mq?.removeEventListener('change', onDprChange))
 </script>
 
 <template>
   <div class="flex items-end justify-center gap-2 overflow-x-auto sm:gap-4">
     <div
       v-for="s in sizes"
-      :key="s"
+      :key="s.px"
       class="flex-col items-center gap-1"
-      :class="s > MOBILE_MAX ? 'hidden sm:flex' : 'flex'"
+      :class="s.px > MOBILE_MAX ? 'hidden sm:flex' : 'flex'"
     >
       <div
         class="flex items-center justify-center overflow-hidden rounded"
         :class="backgroundClass"
-        :style="{ width: s + 'px', height: s + 'px' }"
+        :style="{ width: s.px + 'px', height: s.px + 'px' }"
       >
         <canvas
-          :ref="(el) => setCanvas(s, el)"
-          :width="s"
-          :height="s"
-          :style="{ width: s + 'px', height: s + 'px' }"
+          :ref="(el) => setCanvas(s.px, el)"
+          :style="{ width: s.px + 'px', height: s.px + 'px' }"
         />
       </div>
-      <span class="text-[10px] text-app-muted">{{ s }}px</span>
+      <span class="text-[10px] leading-tight text-app-muted">{{ s.label }}</span>
     </div>
   </div>
 </template>
