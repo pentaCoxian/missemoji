@@ -22,7 +22,7 @@ const modes: { value: BackgroundMode; label: string }[] = [
       class="rounded px-3 py-1 text-xs transition-colors"
       :class="
         m.value === backgroundMode
-          ? 'bg-app-accent-strong text-white'
+          ? 'bg-app-accent text-app-on-accent'
           : 'text-app-muted hover:text-app-text'
       "
       @click="editor.setBackgroundMode(m.value)"

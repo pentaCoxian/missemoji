@@ -5,8 +5,10 @@ export type BackgroundMode = 'checker' | 'dark' | 'light'
 /** Tailwind classes for each preview backdrop (shared by stage + size strip). */
 const BACKGROUND_CLASS: Record<BackgroundMode, string> = {
   checker: 'checkerboard',
-  dark: 'bg-[#15171c]',
-  light: 'bg-[#f4f5f7]',
+  // Misskey's own page backgrounds (d-dark / l-light `bg`), so the preview
+  // shows the emoji against what a timeline actually looks like.
+  dark: 'bg-[#232323]',
+  light: 'bg-[#f9f9f9]',
 }
 
 /**
