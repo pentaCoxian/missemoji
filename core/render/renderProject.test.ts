@@ -302,12 +302,16 @@ describe('animation transforms reach the pixels', () => {
     const mid = renderPreset(baseProject('HELLO'), 'marquee', 0.5)
     const wrap = renderPreset(baseProject('HELLO'), 'marquee', 1)
     const b0 = getAlphaBounds(start.rgba, start.width, start.height, 10)
-    const b1 = getAlphaBounds(mid.rgba, mid.width, mid.height, 10)
     // single big line wider than the canvas: content reaches an edge
     expect(b0.minX === 0 || b0.maxX >= start.width).toBe(true)
-    // something moved between t=0 and t=0.5
-    expect(start.rgba).not.toEqual(mid.rgba)
-    expect(b0).not.toEqual(b1)
+    // The text scrolls, so the PIXELS move. The alpha bounds deliberately are
+    // not compared: a marquee spans the full canvas at every phase, so its
+    // bounding box is identical throughout even while the content slides.
+    let moved = 0
+    for (let i = 0; i < start.rgba.length; i++) {
+      if (start.rgba[i] !== mid.rgba[i]) moved++
+    }
+    expect(moved).toBeGreaterThan(start.rgba.length * 0.05)
     // t=1 is the same picture as t=0 (seamless wrap)
     expect(wrap.rgba).toEqual(start.rgba)
   })

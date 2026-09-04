@@ -49,6 +49,15 @@ export interface TextPlacement {
 }
 
 /**
+ * Scale a measured font metric into render px, falling back only when the
+ * metric is genuinely absent. A metric of 0 is a real value (text with no
+ * descenders has zero descent) and is kept as-is.
+ */
+function metricOr(metric: number | undefined, scale: number, fallback: number): number {
+  return typeof metric === 'number' && Number.isFinite(metric) ? metric * scale : fallback
+}
+
+/**
  * Compute glyph placements for a resolved layout, scaled to the render surface.
  *
  * @param scale  renderScale (final px -> render px)
@@ -76,19 +85,50 @@ export function placeText(
   const lineGap = fontPx * font.lineHeight
   const letterSpacing = font.letterSpacing * scale
 
-  // Total block height for vertical alignment.
-  const blockHeight = resolved.lines.length * lineGap
-  let top: number
+  // Vertical placement works on the block's REAL ink extent, not on a stack of
+  // nominal line boxes. Baselines sit at `top + i*lineGap + ascent`, so the ink
+  // runs from the first line's ascent to the last line's descent:
+  //
+  //   inkHeight = (lineCount - 1) * lineGap + firstAscent + lastDescent
+  //
+  // Centring on `lineCount * lineGap` instead (the old behaviour) reserved a
+  // full line gap under the last baseline while the glyphs only reach their
+  // descent, pushing the text upward — visibly so with a tall line height, a
+  // single line, or CJK glyphs whose ink is far shorter than the font's
+  // nominal descent.
+  const firstLine = resolved.lines[0]
+  const lastLine = resolved.lines[resolved.lines.length - 1]
+  // `?? fallback`, never `|| fallback`: a descent of exactly 0 is legitimate
+  // (text with no descenders, e.g. "ABC") and must not be replaced by a
+  // fabricated 0.2em, which would push the block upward.
+  const firstAscent = metricOr(firstLine?.ascent, scale, fontPx * 0.8)
+  const lastDescent = metricOr(lastLine?.descent, scale, fontPx * 0.2)
+  const inkHeight = (resolved.lines.length - 1) * lineGap + firstAscent + lastDescent
+
+  // The aspect-packing stretch (withBlockStretch) scales the drawn block about
+  // the box centre by `stretchY`, so the ink finally on screen is `inkHeight *
+  // stretchY` tall. Alignment has to reason in that final space, then convert
+  // back into the unstretched coordinates these placements are expressed in:
+  //   drawn_y = cy + (y - cy) * stretchY   =>   y = cy + (drawn_y - cy) / sy
+  const cy = box.y + box.h / 2
+  const sy = resolved.stretchY || 1
+  const drawnInkHeight = inkHeight * sy
+
+  let drawnInkTop: number
   switch (layout.verticalAlign) {
     case 'top':
-      top = box.y
+      drawnInkTop = box.y
       break
     case 'bottom':
-      top = box.y + box.h - blockHeight
+      drawnInkTop = box.y + box.h - drawnInkHeight
       break
     default:
-      top = box.y + (box.h - blockHeight) / 2
+      drawnInkTop = cy - drawnInkHeight / 2
   }
+  const inkTop = cy + (drawnInkTop - cy) / sy
+  // Baselines are computed below as `top + i*lineGap + ascent`, so for the
+  // first line to land at `inkTop + firstAscent`, `top` is simply inkTop.
+  const top = inkTop
 
   const placed: PlacedCluster[] = []
   const lineWidths: number[] = []
@@ -118,8 +158,8 @@ export function placeText(
         startX = box.x + (box.w - lineWidth) / 2
     }
 
-    const ascent = line.ascent * scale || fontPx * 0.8
-    const descent = line.descent * scale || fontPx * 0.2
+    const ascent = metricOr(line.ascent, scale, fontPx * 0.8)
+    const descent = metricOr(line.descent, scale, fontPx * 0.2)
     const baseline = top + i * lineGap + ascent
 
     let penX = startX
