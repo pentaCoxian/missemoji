@@ -3,8 +3,8 @@ import { storeToRefs } from 'pinia'
 import { useProjectStore } from '~/stores/project'
 import { useFontsStore } from '~/stores/fonts'
 import { loadGoogleFont } from '#core/fonts/loadFont'
-import { getFontDescriptor } from '#core/fonts/catalog'
 import { clearMeasureCache } from '#core/layout/measureText'
+import { useFontResolver } from '~/composables/useFontResolver'
 
 /**
  * Ensures the project's selected font family is loaded (all of the family's
@@ -13,14 +13,18 @@ import { clearMeasureCache } from '#core/layout/measureText'
  * fetched via the same-origin Nitro proxy and turned into FontFace objects,
  * falling back to a `<link>` injection on static hosts. Returns `ensure()` so
  * the preview pipeline can await a font before its first layout.
+ *
+ * Fonts the user added by pasting a Google Fonts link load exactly like
+ * catalog fonts; uploaded files are already registered by the upload control.
  */
 export function useFontLoading(onFontReady: () => void) {
   const projectStore = useProjectStore()
   const fontsStore = useFontsStore()
   const { project } = storeToRefs(projectStore)
+  const { resolve } = useFontResolver()
 
   async function ensure(family = project.value.font.family) {
-    const descriptor = getFontDescriptor(family)
+    const { descriptor } = resolve(family)
     if (!descriptor) return
     if (fontsStore.isLoaded(family)) return
 

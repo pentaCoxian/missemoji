@@ -11,8 +11,20 @@ export interface CustomFontRecord {
 }
 
 /**
- * Font catalog + loading state. Favorites/recent are persisted; loaded /
- * loading / failed and the uploaded fonts are transient session state.
+ * A Google font the user added by pasting a link. Only the descriptor is kept
+ * (the faces are fetched from Google like any catalog font), so unlike an
+ * uploaded file this is small enough to persist across reloads.
+ */
+export interface AddedFontRecord {
+  family: string
+  weights: number[]
+  italic: boolean
+}
+
+/**
+ * Font catalog + loading state. Favorites, recents and URL-added fonts are
+ * persisted; loaded / loading / failed and the uploaded font files are
+ * transient session state.
  */
 export const useFontsStore = defineStore('fonts', {
   state: () => ({
@@ -22,6 +34,7 @@ export const useFontsStore = defineStore('fonts', {
     favorites: [] as string[],
     recent: [] as string[],
     customFonts: [] as CustomFontRecord[],
+    addedFonts: [] as AddedFontRecord[],
   }),
 
   getters: {
@@ -29,6 +42,7 @@ export const useFontsStore = defineStore('fonts', {
     isLoading: (s) => (family: string) => s.loading.has(family),
     isFailed: (s) => (family: string) => s.failed.has(family),
     customFont: (s) => (family: string) => s.customFonts.find((f) => f.family === family),
+    addedFont: (s) => (family: string) => s.addedFonts.find((f) => f.family === family),
   },
 
   actions: {
@@ -51,6 +65,15 @@ export const useFontsStore = defineStore('fonts', {
     },
     pushRecent(family: string) {
       this.recent = [family, ...this.recent.filter((f) => f !== family)].slice(0, 12)
+    },
+    /** Remember a Google font added by URL (replacing any earlier entry). */
+    addAddedFont(rec: AddedFontRecord) {
+      this.addedFonts = [...this.addedFonts.filter((f) => f.family !== rec.family), rec]
+    },
+    removeAddedFont(family: string) {
+      this.addedFonts = this.addedFonts.filter((f) => f.family !== family)
+      this.loaded.delete(family)
+      this.failed.delete(family)
     },
     addCustomFont(rec: CustomFontRecord) {
       this.customFonts = [...this.customFonts.filter((f) => f.family !== rec.family), rec]

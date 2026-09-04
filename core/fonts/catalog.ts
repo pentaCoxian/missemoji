@@ -124,6 +124,25 @@ export function getFontDescriptor(family: string): FontDescriptor | undefined {
   return BY_FAMILY.get(family)
 }
 
+/**
+ * A descriptor for a family that is not in the curated catalog — a font the
+ * user added by pasting a Google Fonts link. It behaves like a catalog entry
+ * for loading purposes; `weights` falls back to 400 when the link didn't say.
+ */
+export function makeDescriptor(
+  family: string,
+  opts: { weights?: number[]; italic?: boolean; japanese?: boolean } = {},
+): FontDescriptor {
+  const weights = opts.weights?.length ? [...new Set(opts.weights)].sort((a, b) => a - b) : [400]
+  return {
+    family,
+    group: 'recommended',
+    weights,
+    japanese: opts.japanese ?? false,
+    ...(opts.italic ? { italic: true } : {}),
+  }
+}
+
 /** Group the catalog for the picker, in display order. */
 export function groupedCatalog(): { group: FontGroup; fonts: FontDescriptor[] }[] {
   const order: FontGroup[] = [
