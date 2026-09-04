@@ -61,17 +61,17 @@ const mobileTabs: { value: Tab; label: string; icon: string }[] = [
           <PreviewStage />
         </div>
         <div
-          class="space-y-1.5 border-t border-app-border px-3 py-1.5 lg:space-y-2 lg:px-4 lg:py-3"
+          class="flex flex-col items-center gap-1.5 border-t border-app-border px-3 py-1.5 lg:gap-2 lg:px-4 lg:py-3"
         >
-          <!-- Mobile keeps the ladder and the background toggle on ONE row so
-               the preview block stays short; desktop stacks them as before. -->
-          <div class="flex items-center justify-center gap-3 lg:block">
-            <SizePreviewStrip class="min-w-0" />
+          <SizePreviewStrip />
+          <!-- The background toggle appears here only on mobile; desktop has
+               it above the stage and shows just the playback controls. -->
+          <div class="flex items-center justify-center gap-3">
             <div class="lg:hidden">
               <BackgroundToggle />
             </div>
+            <PlaybackControls />
           </div>
-          <PlaybackControls class="mx-auto" />
         </div>
       </main>
 

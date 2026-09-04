@@ -86,11 +86,11 @@ onBeforeUnmount(() => mq?.removeEventListener('change', onDprChange))
 </script>
 
 <template>
-  <div class="flex items-end justify-center gap-2 overflow-x-auto sm:gap-4">
+  <div class="flex shrink-0 items-end justify-center gap-2 sm:gap-4">
     <div
       v-for="s in sizes"
       :key="s.px"
-      class="flex-col items-center gap-1"
+      class="shrink-0 flex-col items-center gap-0.5 lg:gap-1"
       :class="s.px > MOBILE_MAX ? 'hidden sm:flex' : 'flex'"
     >
       <div
@@ -103,7 +103,10 @@ onBeforeUnmount(() => mq?.removeEventListener('change', onDprChange))
           :style="{ width: s.px + 'px', height: s.px + 'px' }"
         />
       </div>
-      <span class="text-[10px] leading-tight text-app-muted">{{ s.label }}</span>
+      <!-- The label is wider than the small swatches; keeping it on one line
+           lets it set the column width so the swatches stay evenly spaced
+           and bottom-aligned instead of wrapping into a ragged row. -->
+      <span class="whitespace-nowrap text-[10px] leading-none text-app-muted">{{ s.label }}</span>
     </div>
   </div>
 </template>
