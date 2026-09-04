@@ -122,3 +122,26 @@ body {
     -8px 0;
   background-color: #2d2d2d;
 }
+
+/* Mobile ergonomics. iOS Safari zooms the whole page when a focused text
+   control renders below 16px, so on touch devices form text is pinned to
+   16px; the slider hit area also grows to a comfortable thumb size. */
+@media (pointer: coarse) {
+  input:not([type='range']):not([type='checkbox']):not([type='color']),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+  .app-range {
+    height: 28px;
+  }
+  .app-range::-webkit-slider-thumb {
+    width: 22px;
+    height: 22px;
+    margin-top: -8px;
+  }
+  .app-range::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+  }
+}

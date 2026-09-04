@@ -19,9 +19,6 @@ onMounted(() => {
   init()
 })
 
-// Display the final-size canvas scaled up for a comfortable editing view.
-const displaySize = 320
-
 const statusLabel = computed(() => {
   switch (status.value) {
     case 'solving':
@@ -36,18 +33,15 @@ const statusLabel = computed(() => {
 </script>
 
 <template>
-  <div class="flex h-full flex-col items-center justify-center gap-6">
-    <div class="relative">
+  <div class="flex h-full flex-col items-center justify-center gap-3 lg:gap-6">
+    <!-- The canvas is scaled up for a comfortable editing view: fixed 320px on
+         desktop, shrunk to fit narrow screens on mobile. -->
+    <div class="relative w-[min(240px,70vw)] lg:w-[320px]">
       <div
-        class="flex items-center justify-center overflow-hidden rounded-app shadow-lg"
+        class="flex aspect-square items-center justify-center overflow-hidden rounded-app shadow-lg"
         :class="backgroundClass"
-        :style="{ width: displaySize + 'px', height: displaySize + 'px' }"
       >
-        <canvas
-          ref="canvasRef"
-          class="[image-rendering:auto]"
-          :style="{ width: displaySize + 'px', height: displaySize + 'px' }"
-        />
+        <canvas ref="canvasRef" class="h-full w-full [image-rendering:auto]" />
       </div>
       <div
         v-if="statusLabel"
