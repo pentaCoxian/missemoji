@@ -18,15 +18,20 @@ const hasItalic = computed(() => resolve(project.value.font.family).italic)
 
 <template>
   <PanelSection title="Font">
-    <FontPicker />
-    <FontWeightControl />
-    <ToggleSwitch
-      v-if="hasItalic"
-      :model-value="project.font.style === 'italic'"
-      label="Italic"
-      @update:model-value="store.setFontStyle($event ? 'italic' : 'normal')"
-    />
-    <FontUrlInput />
-    <FontUpload />
+    <!-- On mobile the weight buttons and the Google Fonts loader jump to the
+         top (the picker list is long); desktop keeps the DOM order. -->
+    <div class="flex flex-col gap-3">
+      <FontPicker class="order-4 lg:order-none" />
+      <FontWeightControl class="order-1 lg:order-none" />
+      <ToggleSwitch
+        v-if="hasItalic"
+        class="order-3 lg:order-none"
+        :model-value="project.font.style === 'italic'"
+        label="Italic"
+        @update:model-value="store.setFontStyle($event ? 'italic' : 'normal')"
+      />
+      <FontUrlInput class="order-2 lg:order-none" />
+      <FontUpload class="order-5 lg:order-none" />
+    </div>
   </PanelSection>
 </template>
