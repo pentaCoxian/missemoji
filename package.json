@@ -1,6 +1,8 @@
 {
   "name": "missemoji",
   "private": true,
+  "license": "MIT",
+  "author": "pentaCoxian",
   "type": "module",
   "scripts": {
     "build": "nuxt build",

@@ -217,3 +217,17 @@ worker; they are kept in memory only and are not saved with the project.
   warnings rather than assuming one universal limit.
 - Export is download-only; uploading to an instance is left to tools like
   `misskey-emoji-bulk-uploader`.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+Third-party terms worth knowing when you redistribute a build:
+
+- Runtime dependencies are MIT (`upng-js`, `gifenc`, `fflate`,
+  `grapheme-splitter`, Nuxt/Vue/Pinia/VueUse). The Rust encoder in
+  `wasm/apng-encoder` is MIT and builds on the MIT-licensed `apng` and `png`
+  crates.
+- No fonts are bundled. Google Fonts are fetched at runtime and are covered by
+  their own licenses, almost always the SIL Open Font License; fonts you upload
+  stay in your browser and are never redistributed by this project.
