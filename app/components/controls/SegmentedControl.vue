@@ -18,7 +18,7 @@ const emit = defineEmits<{ 'update:modelValue': [value: T] }>()
         class="flex-1 rounded px-2 py-1 text-xs transition-colors"
         :class="
           opt.value === modelValue
-            ? 'bg-app-accent-strong text-white'
+            ? 'bg-app-accent text-app-on-accent'
             : 'text-app-muted hover:text-app-text'
         "
         @click="emit('update:modelValue', opt.value)"

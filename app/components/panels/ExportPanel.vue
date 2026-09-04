@@ -130,7 +130,7 @@ const renderScales: { value: number; label: string }[] = [
       <button
         v-if="!exportStore.isBusy && !editor.batchMode"
         type="button"
-        class="w-full rounded-app bg-app-accent-strong px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+        class="w-full rounded-app bg-app-accent px-3 py-2 text-sm font-medium text-app-on-accent transition-opacity hover:opacity-90"
         @click="start()"
       >
         Download {{ project.export.format.toUpperCase() }}
@@ -138,7 +138,7 @@ const renderScales: { value: number; label: string }[] = [
       <button
         v-else-if="!exportStore.isBusy"
         type="button"
-        class="w-full rounded-app bg-app-accent-strong px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+        class="w-full rounded-app bg-app-accent px-3 py-2 text-sm font-medium text-app-on-accent transition-opacity hover:opacity-90 disabled:opacity-40"
         :disabled="batchCount === 0"
         @click="startBatch(editor.batchText)"
       >
@@ -147,7 +147,7 @@ const renderScales: { value: number; label: string }[] = [
       <div v-else class="space-y-2">
         <div class="h-2 w-full overflow-hidden rounded-full bg-app-panel-2">
           <div
-            class="h-full bg-app-accent-strong transition-all"
+            class="h-full bg-app-accent transition-all"
             :style="{ width: Math.round(exportStore.progress * 100) + '%' }"
           />
         </div>

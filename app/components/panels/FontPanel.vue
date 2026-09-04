@@ -18,14 +18,14 @@ const hasItalic = computed(() => resolve(project.value.font.family).italic)
 
 <template>
   <PanelSection title="Font">
+    <FontPicker />
+    <FontWeightControl />
     <ToggleSwitch
       v-if="hasItalic"
       :model-value="project.font.style === 'italic'"
       label="Italic"
       @update:model-value="store.setFontStyle($event ? 'italic' : 'normal')"
     />
-    <FontWeightControl />
-    <FontPicker />
     <FontUrlInput />
     <FontUpload />
   </PanelSection>
