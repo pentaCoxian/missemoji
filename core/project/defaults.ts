@@ -58,8 +58,8 @@ export function createDefaultProject(): EmojiProject {
       fps: 24,
       loop: true,
       direction: 'forward',
-      hold: 0.25,
-      phase: 0.35,
+      hold: 0,
+      phase: 0.5,
       params: {},
     },
     export: {
