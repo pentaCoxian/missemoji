@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { createSliderTouchGuard } from '~~/core/ui/sliderTouchGuard'
+
 const props = withDefaults(
   defineProps<{
     modelValue: number
@@ -13,8 +15,14 @@ const props = withDefaults(
 
 const emit = defineEmits<{ 'update:modelValue': [value: number] }>()
 
+// Scrolling the panel past a slider must not change its value; see the
+// guard for what counts as a drag.
+const { shouldIgnoreInput, handlers } = createSliderTouchGuard(() => props.modelValue)
+
 function onInput(e: Event) {
-  emit('update:modelValue', Number((e.target as HTMLInputElement).value))
+  const el = e.target as HTMLInputElement
+  if (shouldIgnoreInput(el)) return
+  emit('update:modelValue', Number(el.value))
 }
 </script>
 
@@ -31,6 +39,7 @@ function onInput(e: Event) {
       :max="props.max"
       :step="props.step"
       :value="modelValue"
+      v-on="handlers"
       @input="onInput"
     />
   </label>

@@ -67,6 +67,11 @@ body {
   background: transparent;
   cursor: pointer;
   margin: 0;
+  /* A range input normally claims a touch the moment it lands, so a flick
+     meant to scroll the panel drags the thumb instead. pan-y hands vertical
+     gestures back to the scroller and leaves the slider only the horizontal
+     ones it actually needs. */
+  touch-action: pan-y;
 }
 .app-range::-webkit-slider-runnable-track {
   height: 6px;

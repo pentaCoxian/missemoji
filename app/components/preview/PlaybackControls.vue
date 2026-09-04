@@ -2,14 +2,20 @@
 import { storeToRefs } from 'pinia'
 import { useEditorStore } from '~/stores/editor'
 import { useProjectStore } from '~/stores/project'
+import { createSliderTouchGuard } from '~~/core/ui/sliderTouchGuard'
 
 const editor = useEditorStore()
 const project = useProjectStore()
 const { playback } = storeToRefs(editor)
 
+// Scrolling past the scrubber must not seek; see the guard.
+const { shouldIgnoreInput, handlers } = createSliderTouchGuard(() => playback.value.currentFrame)
+
 function onScrub(e: Event) {
+  const el = e.target as HTMLInputElement
+  if (shouldIgnoreInput(el)) return
   editor.setPlaying(false)
-  editor.setCurrentFrame(Number((e.target as HTMLInputElement).value))
+  editor.setCurrentFrame(Number(el.value))
 }
 </script>
 
@@ -32,6 +38,7 @@ function onScrub(e: Event) {
       :min="0"
       :max="Math.max(0, playback.frameCount - 1)"
       :value="playback.currentFrame"
+      v-on="handlers"
       @input="onScrub"
     />
     <span class="w-12 text-right text-[10px] tabular-nums text-app-muted">
