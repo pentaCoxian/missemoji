@@ -75,8 +75,9 @@ export function solveLayout(ctx: Ctx2D, project: EmojiProject, overshootPx = 0):
   if (project.layout.manualLineBreaks) {
     const lines = segmentLines(project.text)
     const fit = fitLines(ctx, project.font, lines, fitBox, letterSpacingPx)
-    const packed = justify(project, hints.noStretch ? fit : applyStretch(project, fit, box))
-    return validate(packed)
+    const justified = justify(project, fit, box)
+    const packed = hints.noStretch ? justified : applyStretch(project, justified, box)
+    return validate(fitDrawnBlock(packed, box))
   }
 
   // Auto layout: generate candidates and pick the best-scoring fit.
@@ -99,8 +100,13 @@ export function solveLayout(ctx: Ctx2D, project: EmojiProject, overshootPx = 0):
 
   // Pack the winner's glyphs to fill the square (aspect stretch), then validate
   // the real visible pixels against the safe box.
-  const packed = justify(project, hints.noStretch ? best! : applyStretch(project, best!, box))
-  return validate(packed)
+  // Justify BEFORE the aspect stretch: justification changes the block's width
+  // and height, and computeAspectStretch derives its factors from those. Doing
+  // it the other way round leaves the stretch sized for the pre-justified block
+  // and the drawn text overflows the canvas.
+  const justified = justify(project, best!, box)
+  const packed = hints.noStretch ? justified : applyStretch(project, justified, box)
+  return validate(fitDrawnBlock(packed, box))
 }
 
 /** Scale a solved layout (fitted at the reference size) to the real canvas. */
@@ -134,6 +140,38 @@ function activeLayoutHints(project: EmojiProject): LayoutHints {
   return getPreset(project.animation.preset)?.layoutHints ?? {}
 }
 
+/**
+ * Final guard: the block as it will actually be DRAWN — after per-line sizes
+ * and after the aspect stretch — must fit the safe box.
+ *
+ * Both of those steps scale the block after the uniform fit proved it fitted,
+ * so their product can exceed the box even though each step alone respected it.
+ * Rather than let the shadow land off-canvas, shrink the whole thing (font size
+ * and the block extents together, so callers stay consistent) by the overflow
+ * ratio. A no-op for the common case, where the drawn block already fits.
+ */
+function fitDrawnBlock(layout: LayoutResult, box: { w: number; h: number }): LayoutResult {
+  const drawnW = layout.blockWidth * (layout.stretchX || 1)
+  const drawnH = layout.blockHeight * (layout.stretchY || 1)
+  const k = Math.min(
+    drawnW > box.w && drawnW > 0 ? box.w / drawnW : 1,
+    drawnH > box.h && drawnH > 0 ? box.h / drawnH : 1,
+  )
+  if (k >= 0.999) return layout
+  return {
+    ...layout,
+    fontSize: layout.fontSize * k,
+    blockWidth: layout.blockWidth * k,
+    blockHeight: layout.blockHeight * k,
+    lines: layout.lines.map((l) => ({
+      ...l,
+      width: l.width * k,
+      ascent: l.ascent * k,
+      descent: l.descent * k,
+    })),
+  }
+}
+
 /** Apply per-letter aspect packing to a fitted layout. */
 function applyStretch(
   project: EmojiProject,
@@ -145,10 +183,14 @@ function applyStretch(
 }
 
 /**
- * Per-line block-warp justification, applied after the uniform fit so it
- * stretches lines toward a width already known to fit. Single-line presets
- * (marquee) skip it: there is no ragged edge to even out.
+ * Per-line block justification, applied after the uniform fit so it sizes lines
+ * toward a width already known to fit. Single-line presets (marquee) skip it:
+ * there is no ragged edge to even out.
  */
-function justify(project: EmojiProject, fit: LayoutResult): LayoutResult {
-  return applyLineJustify(fit, project.layout.justifyLines)
+function justify(
+  project: EmojiProject,
+  fit: LayoutResult,
+  box: { w: number; h: number },
+): LayoutResult {
+  return applyLineJustify(fit, project.layout.justifyLines, box, project.font.lineHeight)
 }

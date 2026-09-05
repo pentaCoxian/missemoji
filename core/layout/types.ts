@@ -34,11 +34,12 @@ export interface LayoutResult {
   stretchX: number
   stretchY: number
   /**
-   * Per-line horizontal scale (block-warp justification), one per line, applied
-   * around each line's own centre. Absent when justification is off, which is
-   * the common case; treat a missing entry as 1.
+   * Per-line font-size multiplier (block justification), one per line, relative
+   * to `fontSize`. Each line is SET LARGER to fill the block width rather than
+   * stretched, so letter proportions are preserved. Absent when justification
+   * is off, which is the common case; treat a missing entry as 1.
    */
-  lineScales?: number[]
+  lineSizes?: number[]
   /** real visible pixel bounds from a probe render, in FINAL px (may be null pre-probe) */
   pixelBounds: Bounds | null
   /** human-readable warnings from the solve (e.g. kinsoku violations) */

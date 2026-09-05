@@ -42,7 +42,11 @@ export function validatePixelBounds(
   const img = ctx.getImageData(0, 0, finalW, finalH)
   const bounds: Bounds = getAlphaBounds(img.data, finalW, finalH, 1)
 
-  // Safe box in final px.
+  // Safe box in final px. The probe above draws the FILL only — it is a cheap
+  // silhouette, not a full render — so the margin is what accounts for the
+  // stroke, shadow and glow that bleed past the glyph outline. Measuring the
+  // fill against the full canvas instead would let a shadow-offset block sit
+  // flush with the edge and clip in the real render.
   const safe = {
     minX: safeMarginPx,
     minY: safeMarginPx,
@@ -71,9 +75,24 @@ export function validatePixelBounds(
 
   if (shrink < 0.999) {
     const newSize = Math.max(6, layout.fontSize * shrink)
+    // Scale the measured geometry by the same factor. Line widths and the block
+    // extents were measured at the OLD size, and callers (aspect stretch, the
+    // safe box, per-line justification) read them as if they described the
+    // returned layout — leaving them stale makes the block report a size it no
+    // longer has. `k` is recomputed from the sizes actually used, so the floor
+    // at 6px is accounted for.
+    const k = layout.fontSize > 0 ? newSize / layout.fontSize : 1
     return {
       ...layout,
       fontSize: newSize,
+      lines: layout.lines.map((l) => ({
+        ...l,
+        width: l.width * k,
+        ascent: l.ascent * k,
+        descent: l.descent * k,
+      })),
+      blockWidth: layout.blockWidth * k,
+      blockHeight: layout.blockHeight * k,
       pixelBounds: bounds,
       warnings: [...layout.warnings, 'Visible pixels exceeded safe box; shrunk to fit'],
     }

@@ -2,6 +2,7 @@ import type { Ctx2D } from './renderContext'
 import type { FontSpec, LayoutSpec } from '../project/schema'
 import type { LayoutResult } from '../layout/types'
 import { cssFont } from '../layout/measureText'
+import { justifiedLeading } from '../layout/lineJustify'
 
 /**
  * Per-cluster placement: where each grapheme's pen position sits, in the render
@@ -24,11 +25,11 @@ export interface PlacedCluster {
   line: number
   indexInLine: number
   /**
-   * Block-warp justification factor for this cluster's line (1 = none). The
-   * pen positions above already account for it; the painter still needs it to
-   * stretch the glyph itself by the same amount.
+   * Font size this cluster is set at, in render px. Equals the placement's
+   * `fontPx` unless block justification gave the line its own size, so the
+   * painter must set ctx.font per cluster rather than once per pass.
    */
-  lineScale: number
+  fontPx: number
   /** this frame's per-character motion, resolved to placement px (optional) */
   transform?: ResolvedCharTransform
 }
@@ -88,16 +89,15 @@ export function placeText(
   const stretchX = resolved.stretchX || 1
   const stretchY = resolved.stretchY || 1
 
-  const lineGap = fontPx * font.lineHeight
   const letterSpacing = font.letterSpacing * scale
 
   // Vertical placement works on the block's REAL ink extent, not on a stack of
-  // nominal line boxes. Baselines sit at `top + i*lineGap + ascent`, so the ink
+  // nominal line boxes. Baselines sit an ascent below each line's top, so the ink
   // runs from the first line's ascent to the last line's descent:
   //
-  //   inkHeight = (lineCount - 1) * lineGap + firstAscent + lastDescent
+  //   inkHeight = (sum of the leadings between baselines) + firstAscent + lastDescent
   //
-  // Centring on `lineCount * lineGap` instead (the old behaviour) reserved a
+  // Centring on a full line box per line instead (the old behaviour) reserved a
   // full line gap under the last baseline while the glyphs only reach their
   // descent, pushing the text upward — visibly so with a tall line height, a
   // single line, or CJK glyphs whose ink is far shorter than the font's
@@ -107,9 +107,27 @@ export function placeText(
   // `?? fallback`, never `|| fallback`: a descent of exactly 0 is legitimate
   // (text with no descenders, e.g. "ABC") and must not be replaced by a
   // fabricated 0.2em, which would push the block upward.
-  const firstAscent = metricOr(firstLine?.ascent, scale, fontPx * 0.8)
-  const lastDescent = metricOr(lastLine?.descent, scale, fontPx * 0.2)
-  const inkHeight = (resolved.lines.length - 1) * lineGap + firstAscent + lastDescent
+  const firstSizeK = resolved.lineSizes?.[0] ?? 1
+  const lastSizeK = resolved.lineSizes?.[resolved.lines.length - 1] ?? 1
+  const firstAscent = metricOr(firstLine?.ascent, scale * firstSizeK, fontPx * firstSizeK * 0.8)
+  const lastDescent = metricOr(lastLine?.descent, scale * lastSizeK, fontPx * lastSizeK * 0.2)
+  // With block justification each line has its own size, so leading varies per
+  // line: the gap from baseline i-1 to baseline i is set by the line the gap
+  // follows, the way a text engine advances the pen by the leading of the line
+  // it just finished. It comes from the shared helper so the layout's reported
+  // block height and what is placed here cannot drift apart — a mismatch makes
+  // the aspect stretch size the block wrongly and the text land off-centre. The
+  // helper works in whatever unit it is given, so feed it RENDER px throughout.
+  const sizes = resolved.lines.map((_, i) => resolved.lineSizes?.[i] ?? 1)
+  const scaledLines = resolved.lines.map((l) => ({
+    ascent: metricOr(l.ascent, scale, fontPx * 0.8),
+    descent: metricOr(l.descent, scale, fontPx * 0.2),
+  }))
+  const leadingAfter = (i: number) =>
+    justifiedLeading(scaledLines, sizes, fontPx, font.lineHeight, i)
+  let baselineSpan = 0
+  for (let i = 1; i < resolved.lines.length; i++) baselineSpan += leadingAfter(i - 1)
+  const inkHeight = baselineSpan + firstAscent + lastDescent
 
   // The aspect-packing stretch (withBlockStretch) scales the drawn block about
   // the box centre by `stretchY`, so the ink finally on screen is `inkHeight *
@@ -132,35 +150,34 @@ export function placeText(
       drawnInkTop = cy - drawnInkHeight / 2
   }
   const inkTop = cy + (drawnInkTop - cy) / sy
-  // Baselines are computed below as `top + i*lineGap + ascent`, so for the
-  // first line to land at `inkTop + firstAscent`, `top` is simply inkTop.
+  // Baselines are accumulated below starting from `top`, so for the first line
+  // to land at `inkTop + firstAscent`, `top` is simply inkTop.
   const top = inkTop
 
   const placed: PlacedCluster[] = []
   const lineWidths: number[] = []
   let index = 0
 
+  let baselineY = top
   resolved.lines.forEach((line, i) => {
-    // Unstretched glyph advances (block-level transform applies the stretch).
+    // Block justification sets each line at its own size so the glyphs keep
+    // their proportions (a stretch would smear them). Measure this line at
+    // that size; letter spacing scales with it so tracking stays proportional.
+    const lineFontPx = fontPx * (resolved.lineSizes?.[i] ?? 1)
+    // Set the font for EVERY line, not just the ones that differ from the base:
+    // a previous line may have left its own (larger) size on the context, and a
+    // line at size 1 would then be measured with it.
+    ctx.font = cssFont(font, lineFontPx)
+    const lineSpacing = letterSpacing * (lineFontPx / fontPx)
+
     let lineWidth = 0
     const widths: number[] = []
     for (const c of line.clusters) {
       const w = ctx.measureText(c).width
       widths.push(w)
-      lineWidth += w + letterSpacing
+      lineWidth += w + lineSpacing
     }
-    if (line.clusters.length > 0) lineWidth -= letterSpacing
-
-    // Block-warp justification: widen this line so it fills the block. The
-    // advances (and the spacing between them) carry the scale, so the line is
-    // laid out at its final width here and each glyph is drawn stretched by
-    // the same factor in paintPlacedText. Scaling positions rather than
-    // re-fitting keeps every pass — fill, stroke, shadow, glow — in register.
-    const lineScale = resolved.lineScales?.[i] ?? 1
-    if (lineScale !== 1) {
-      for (let w = 0; w < widths.length; w++) widths[w] = widths[w]! * lineScale
-      lineWidth *= lineScale
-    }
+    if (line.clusters.length > 0) lineWidth -= lineSpacing
     lineWidths.push(lineWidth)
 
     let startX: number
@@ -175,9 +192,19 @@ export function placeText(
         startX = box.x + (box.w - lineWidth) / 2
     }
 
-    const ascent = metricOr(line.ascent, scale, fontPx * 0.8)
-    const descent = metricOr(line.descent, scale, fontPx * 0.2)
-    const baseline = top + i * lineGap + ascent
+    // Stored metrics describe the line at the BASE size, so scale them by the
+    // line's own multiplier — the glyphs really are that much taller.
+    const sizeK = lineFontPx / fontPx
+    const ascent = metricOr(line.ascent, scale * sizeK, lineFontPx * 0.8)
+    const descent = metricOr(line.descent, scale * sizeK, lineFontPx * 0.2)
+    // Advance the running baseline: the first sits an ascent below the block
+    // top, each later one exactly one leading below its predecessor. Keeping
+    // the ACCUMULATOR on the baseline (rather than adding the ascent to a
+    // top-relative running total) is what makes the gap between consecutive
+    // baselines equal the leading — otherwise it also picks up the difference
+    // between the two lines' ascents, which with per-line sizes is large.
+    baselineY = i === 0 ? top + ascent : baselineY + leadingAfter(i - 1)
+    const baseline = baselineY
 
     let penX = startX
     line.clusters.forEach((c, ci) => {
@@ -191,10 +218,10 @@ export function placeText(
         index,
         line: i,
         indexInLine: ci,
-        lineScale,
+        fontPx: lineFontPx,
       })
       index++
-      penX += widths[ci]! + letterSpacing * lineScale
+      penX += widths[ci]! + lineSpacing
     })
   })
 
@@ -223,28 +250,24 @@ export function paintPlacedText(
   placement: TextPlacement,
   pass: TextPass,
 ) {
-  ctx.font = cssFont(font, placement.fontPx)
   ctx.textBaseline = 'alphabetic'
+  // Block justification gives lines their own size, so track the size actually
+  // set on the context and only re-assign ctx.font when it changes (setting it
+  // per glyph would re-parse the font shorthand thousands of times a frame).
+  let currentFontPx = NaN
+  const useFont = (px: number) => {
+    if (px === currentFontPx) return
+    ctx.font = cssFont(font, px)
+    currentFontPx = px
+  }
   const draw = (text: string, x: number, y: number) => {
     if (pass === 'fill') ctx.fillText(text, x, y)
     else ctx.strokeText(text, x, y)
   }
   for (const p of placement.clusters) {
     const t = p.transform
-    const ls = p.lineScale || 1
-    if (ls !== 1) {
-      // Justified line: stretch the glyph horizontally about its own pen
-      // origin, which is where placeText already put it at the scaled advance.
-      const cx = p.x
-      const cy = p.y - (p.ascent - p.descent) / 2
-      ctx.save()
-      ctx.translate(cx + (t?.dx ?? 0), cy + (t?.dy ?? 0))
-      if (t?.rot) ctx.rotate(t.rot)
-      ctx.scale(ls * (t?.sx ?? 1), t?.sy ?? 1)
-      ctx.translate(-cx, -cy)
-      draw(p.cluster, p.x, p.y)
-      ctx.restore()
-    } else if (!t) {
+    useFont(p.fontPx)
+    if (!t) {
       draw(p.cluster, p.x, p.y)
     } else if (t.sx === 1 && t.sy === 1 && t.rot === 0) {
       // translate-only: no save/restore, gradient space stays canvas-fixed
