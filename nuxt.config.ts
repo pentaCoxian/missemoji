@@ -51,12 +51,22 @@ export default defineNuxtConfig({
         { property: 'og:title', content: SITE_TITLE },
         { property: 'og:description', content: SITE_DESCRIPTION },
         // Crawlers cannot resolve a relative image, so this must be absolute.
-        { property: 'og:image', content: `${SITE_URL}/og.png` },
+        //
+        // The SQUARE card is the og:image because consumers take the first one
+        // and Nuxt collapses repeated og:image:* keys, so a second image would
+        // end up with mismatched dimensions. Misskey (via summaly) reads this
+        // tag and renders it in a 100x100 cover-cropped box, where a wide card
+        // loses everything outside its centre. The square works everywhere:
+        // clients that want a banner get the wide one from twitter:image.
+        { property: 'og:image', content: `${SITE_URL}/og-square.png` },
+        { property: 'og:image:type', content: 'image/png' },
         { property: 'og:image:width', content: '1200' },
-        { property: 'og:image:height', content: '630' },
+        { property: 'og:image:height', content: '1200' },
         { property: 'og:image:alt', content: SITE_TITLE },
         { property: 'og:url', content: SITE_URL },
         // Twitter/X reads its own names and falls back to og: for the rest.
+        // X/Discord/Slack read twitter:* first and lay the image out wide, so
+        // they get the 1200x630 card even though og:image is the square one.
         { name: 'twitter:card', content: 'summary_large_image' },
         { name: 'twitter:title', content: SITE_TITLE },
         { name: 'twitter:description', content: SITE_DESCRIPTION },
