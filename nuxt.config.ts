@@ -7,6 +7,17 @@ import topLevelAwait from 'vite-plugin-top-level-await'
 // We use routeRules SPA mode (not global ssr:false), which sidesteps the
 // dev-server entry bug these plugins triggered under global ssr:false.
 
+// Link-preview metadata. The absolute URL matters: og:image is fetched by
+// crawlers that have no page context, so a relative path silently yields a
+// card with no image. NUXT_PUBLIC_SITE_URL overrides it for a preview deploy.
+const SITE_URL = (process.env.NUXT_PUBLIC_SITE_URL ?? 'https://missemoji.pages.dev').replace(
+  /\/$/,
+  '',
+)
+const SITE_TITLE = 'missemoji — Misskey APNG emoji generator'
+const SITE_DESCRIPTION =
+  'Make animated APNG custom emoji for Misskey in the browser: Google Fonts, gradients, outlines, glow and a dozen animation presets, exported at the size your instance wants.'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-06-01',
@@ -26,6 +37,31 @@ export default defineNuxtConfig({
     head: {
       title: 'missemoji — Misskey APNG emoji generator',
       htmlAttrs: { lang: 'ja' },
+      link: [
+        // The PNG favicon is enough for every browser we target; no .ico.
+        { rel: 'icon', type: 'image/png', href: '/icon.png' },
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+      ],
+      meta: [
+        { name: 'description', content: SITE_DESCRIPTION },
+        { name: 'theme-color', content: '#232323' },
+        // Open Graph, for link previews on Misskey, Mastodon, Discord, Slack…
+        { property: 'og:type', content: 'website' },
+        { property: 'og:site_name', content: 'missemoji' },
+        { property: 'og:title', content: SITE_TITLE },
+        { property: 'og:description', content: SITE_DESCRIPTION },
+        // Crawlers cannot resolve a relative image, so this must be absolute.
+        { property: 'og:image', content: `${SITE_URL}/og.png` },
+        { property: 'og:image:width', content: '1200' },
+        { property: 'og:image:height', content: '630' },
+        { property: 'og:image:alt', content: SITE_TITLE },
+        { property: 'og:url', content: SITE_URL },
+        // Twitter/X reads its own names and falls back to og: for the rest.
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: SITE_TITLE },
+        { name: 'twitter:description', content: SITE_DESCRIPTION },
+        { name: 'twitter:image', content: `${SITE_URL}/og.png` },
+      ],
     },
   },
 
