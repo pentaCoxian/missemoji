@@ -28,6 +28,7 @@ export function createDefaultProject(): EmojiProject {
       verticalAlign: 'middle',
       padding: 0,
       manualLineBreaks: false,
+      justifyLines: false,
     },
     style: {
       fill: {

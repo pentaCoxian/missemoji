@@ -33,6 +33,12 @@ export interface LayoutResult {
    */
   stretchX: number
   stretchY: number
+  /**
+   * Per-line horizontal scale (block-warp justification), one per line, applied
+   * around each line's own centre. Absent when justification is off, which is
+   * the common case; treat a missing entry as 1.
+   */
+  lineScales?: number[]
   /** real visible pixel bounds from a probe render, in FINAL px (may be null pre-probe) */
   pixelBounds: Bounds | null
   /** human-readable warnings from the solve (e.g. kinsoku violations) */

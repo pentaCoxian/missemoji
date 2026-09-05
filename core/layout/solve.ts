@@ -8,6 +8,7 @@ import { generateCandidates } from '../text/lineBreakCandidates'
 import { scoreCandidate } from './scoreLayout'
 import { validatePixelBounds } from './validateBounds'
 import { computeAspectStretch } from './aspectPack'
+import { applyLineJustify } from './lineJustify'
 import { getPreset, type LayoutHints } from '../animation/presets'
 import { fractionToPx, styleBasis, REFERENCE_SIZE } from '../project/units'
 
@@ -74,7 +75,7 @@ export function solveLayout(ctx: Ctx2D, project: EmojiProject, overshootPx = 0):
   if (project.layout.manualLineBreaks) {
     const lines = segmentLines(project.text)
     const fit = fitLines(ctx, project.font, lines, fitBox, letterSpacingPx)
-    const packed = hints.noStretch ? fit : applyStretch(project, fit, box)
+    const packed = justify(project, hints.noStretch ? fit : applyStretch(project, fit, box))
     return validate(packed)
   }
 
@@ -98,13 +99,14 @@ export function solveLayout(ctx: Ctx2D, project: EmojiProject, overshootPx = 0):
 
   // Pack the winner's glyphs to fill the square (aspect stretch), then validate
   // the real visible pixels against the safe box.
-  const packed = hints.noStretch ? best! : applyStretch(project, best!, box)
+  const packed = justify(project, hints.noStretch ? best! : applyStretch(project, best!, box))
   return validate(packed)
 }
 
 /** Scale a solved layout (fitted at the reference size) to the real canvas. */
 function scaleLayout(layout: LayoutResult, k: number): LayoutResult {
   return {
+    // lineScales are ratios, not lengths: they survive the resize unchanged.
     ...layout,
     fontSize: layout.fontSize * k,
     blockWidth: layout.blockWidth * k,
@@ -140,4 +142,13 @@ function applyStretch(
 ): LayoutResult {
   const { stretchX, stretchY } = computeAspectStretch(project, fit, box)
   return { ...fit, stretchX, stretchY }
+}
+
+/**
+ * Per-line block-warp justification, applied after the uniform fit so it
+ * stretches lines toward a width already known to fit. Single-line presets
+ * (marquee) skip it: there is no ragged edge to even out.
+ */
+function justify(project: EmojiProject, fit: LayoutResult): LayoutResult {
+  return applyLineJustify(fit, project.layout.justifyLines)
 }

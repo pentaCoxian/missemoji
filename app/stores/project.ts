@@ -88,6 +88,10 @@ export const useProjectStore = defineStore('project', {
       this.project.layout.manualLineBreaks = v
     },
 
+    setJustifyLines(v: boolean) {
+      this.project.layout.justifyLines = v
+    },
+
     // --- style: fill ---
     setFill(fill: FillSpec) {
       this.project.style.fill = fill

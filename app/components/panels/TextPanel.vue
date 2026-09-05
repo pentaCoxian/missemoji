@@ -78,6 +78,11 @@ const vAligns: { value: VerticalAlign; label: string }[] = [
         suffix="px"
         @update:model-value="store.setPadding(refPxToFraction($event))"
       />
+      <ToggleSwitch
+        :model-value="project.layout.justifyLines"
+        label="Stretch lines to equal width"
+        @update:model-value="store.setJustifyLines($event)"
+      />
     </PanelSection>
 
     <PanelSection title="Typography">

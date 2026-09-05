@@ -23,6 +23,12 @@ export interface PlacedCluster {
   index: number
   line: number
   indexInLine: number
+  /**
+   * Block-warp justification factor for this cluster's line (1 = none). The
+   * pen positions above already account for it; the painter still needs it to
+   * stretch the glyph itself by the same amount.
+   */
+  lineScale: number
   /** this frame's per-character motion, resolved to placement px (optional) */
   transform?: ResolvedCharTransform
 }
@@ -144,6 +150,17 @@ export function placeText(
       lineWidth += w + letterSpacing
     }
     if (line.clusters.length > 0) lineWidth -= letterSpacing
+
+    // Block-warp justification: widen this line so it fills the block. The
+    // advances (and the spacing between them) carry the scale, so the line is
+    // laid out at its final width here and each glyph is drawn stretched by
+    // the same factor in paintPlacedText. Scaling positions rather than
+    // re-fitting keeps every pass — fill, stroke, shadow, glow — in register.
+    const lineScale = resolved.lineScales?.[i] ?? 1
+    if (lineScale !== 1) {
+      for (let w = 0; w < widths.length; w++) widths[w] = widths[w]! * lineScale
+      lineWidth *= lineScale
+    }
     lineWidths.push(lineWidth)
 
     let startX: number
@@ -174,9 +191,10 @@ export function placeText(
         index,
         line: i,
         indexInLine: ci,
+        lineScale,
       })
       index++
-      penX += widths[ci]! + letterSpacing
+      penX += widths[ci]! + letterSpacing * lineScale
     })
   })
 
@@ -213,7 +231,20 @@ export function paintPlacedText(
   }
   for (const p of placement.clusters) {
     const t = p.transform
-    if (!t) {
+    const ls = p.lineScale || 1
+    if (ls !== 1) {
+      // Justified line: stretch the glyph horizontally about its own pen
+      // origin, which is where placeText already put it at the scaled advance.
+      const cx = p.x
+      const cy = p.y - (p.ascent - p.descent) / 2
+      ctx.save()
+      ctx.translate(cx + (t?.dx ?? 0), cy + (t?.dy ?? 0))
+      if (t?.rot) ctx.rotate(t.rot)
+      ctx.scale(ls * (t?.sx ?? 1), t?.sy ?? 1)
+      ctx.translate(-cx, -cy)
+      draw(p.cluster, p.x, p.y)
+      ctx.restore()
+    } else if (!t) {
       draw(p.cluster, p.x, p.y)
     } else if (t.sx === 1 && t.sy === 1 && t.rot === 0) {
       // translate-only: no save/restore, gradient space stays canvas-fixed

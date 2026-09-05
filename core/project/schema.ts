@@ -87,6 +87,12 @@ export interface LayoutSpec {
   /** inner margin, as a fraction of canvas size */
   padding: number
   manualLineBreaks: boolean
+  /**
+   * Scale each line horizontally so every line fills the block width — the
+   * "block warp" look. Off by default: it changes letter proportions per line,
+   * which is a deliberate style choice, not a neutral improvement.
+   */
+  justifyLines: boolean
 }
 
 export interface StyleSpec {

@@ -182,6 +182,7 @@ export function migrateProject(input: unknown): EmojiProject {
       ),
       padding: len(layout.padding, d.layout.padding, px),
       manualLineBreaks: bool(layout.manualLineBreaks, d.layout.manualLineBreaks),
+      justifyLines: bool(layout.justifyLines, d.layout.justifyLines),
     },
     style: {
       fill: migrateFill(style.fill, d.style.fill),
