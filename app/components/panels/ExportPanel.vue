@@ -47,6 +47,16 @@ const fontWarnings = computed<Warning[]>(() => {
   return out
 })
 
+/**
+ * APNG and GIF hold one frame per animation step, so with Animate off there is
+ * only one to write and the file is a still image whatever the format says.
+ */
+const stillFormatNotice = computed(() => {
+  const fmt = project.value.export.format
+  if (project.value.animation.enabled || fmt === 'png') return ''
+  return `Animation is off, so this ${fmt.toUpperCase()} will be a single still frame. Turn on Animate to export motion.`
+})
+
 const formats: { value: ExportFormat; label: string }[] = [
   { value: 'png', label: 'PNG' },
   { value: 'apng', label: 'APNG' },
@@ -119,6 +129,12 @@ const renderScales: { value: number; label: string }[] = [
         label="APNG engine"
         @update:model-value="editor.setApngEngine($event)"
       />
+      <!-- An animated format with animation off encodes a single frame, which
+           is a valid but static PNG. Say so here rather than letting the user
+           discover it in the downloaded file. -->
+      <p v-if="stillFormatNotice" class="text-xs text-app-muted">
+        {{ stillFormatNotice }}
+      </p>
     </PanelSection>
 
     <PanelSection title="Download">
